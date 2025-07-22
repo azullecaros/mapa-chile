@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Mapa de Iniciativas - Debug</title>
+  <title>Mapa de Iniciativas por Región</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
@@ -61,7 +61,11 @@
 
     map.on('click', 'puntos-regiones', (e) => {
       const props = e.features[0].properties;
-      alert(JSON.stringify(props, null, 2));
+      const regionName = props["region"];
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${regionName}</strong><br>Casos: ${props.casos}`)
+        .addTo(map);
     });
 
     map.on('mouseenter', 'puntos-regiones', () => {
