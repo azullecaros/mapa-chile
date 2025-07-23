@@ -11,7 +11,7 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #ffffff;
+      background-color: #F1F1F1;
     }
     #map {
       width: 100%;
@@ -40,8 +40,8 @@
   });
 
   map.on('load', () => {
-    // Colorea fondo del mapa con #E2D2F6 usando una capa de fondo
-    map.setPaintProperty('background', 'background-color', '#E2D2F6');
+    // Color base del mapa
+    map.setPaintProperty('background', 'background-color', '#C3C3C3');
 
     map.addSource('regiones-chile', {
       type: 'vector',
@@ -54,15 +54,15 @@
       source: 'regiones-chile',
       'source-layer': 'Chile_prueba',
       paint: {
-        'circle-color': '#201245',
+        'circle-color': '#E2D2F6',
         'circle-radius': [
           'interpolate',
           ['linear'],
           ['get', 'casos'],
-          1, 10,
-          10, 25
+          1, 14,
+          10, 30
         ],
-        'circle-opacity': 0.95,
+        'circle-opacity': 1,
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff'
       }
@@ -77,19 +77,20 @@
         'text-field': ['get', 'casos'],
         'text-size': 12,
         'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
-        'text-offset': [0, 0.6],
-        'text-anchor': 'top'
+        'text-offset': [0, 0],
+        'text-anchor': 'center',
+        'text-justify': 'center'
       },
       paint: {
         'text-color': '#201245',
         'text-halo-color': '#ffffff',
-        'text-halo-width': 1
+        'text-halo-width': 0.5
       }
     });
 
     map.on('click', 'puntos-regiones', (e) => {
       const props = e.features[0].properties;
-      const regionName = props["región"] || "Región no disponible";
+      const regionName = props["región"] || props["region"] || "Región no disponible";
       const casos = props["casos"] || 0;
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
