@@ -10,26 +10,10 @@
   <style>
     body { margin: 0; padding: 0; background-color: #201245; }
     #map { width: 100%; height: 100vh; }
-    #titulo {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(255,255,255,0.9);
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-family: sans-serif;
-      font-size: 20px;
-      color: #201245;
-      font-weight: bold;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 1;
-    }
   </style>
 </head>
 <body>
 
-<div id="titulo">Mapa de Iniciativas por Región</div>
 <div id="map"></div>
 
 <script>
@@ -37,13 +21,11 @@
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/mapbox/light-v11',
     center: [-71.5429, -35.6751],
-    zoom: 4
+    zoom: 4,
+    projection: 'mercator'
   });
-
-  // Forzar vista cartográfica plana
-  map.setProjection('mercator');
 
   map.on('load', () => {
     map.addSource('regiones-chile', {
@@ -51,31 +33,44 @@
       url: 'mapbox://azulartico.cmddycg7524611mlkndun5g74-5drn9'
     });
 
+    // Agrega los círculos
     map.addLayer({
       id: 'puntos-regiones',
       type: 'circle',
       source: 'regiones-chile',
       'source-layer': 'Chile_prueba',
       paint: {
-        'circle-color': [
-          'interpolate',
-          ['linear'],
-          ['get', 'casos'],
-          1, '#E2D2F6',
-          4, '#B5A2CE',
-          8, '#594B9A',
-          12, '#ffffff'
-        ],
+        'circle-color': '#220F6',
         'circle-radius': [
           'interpolate',
           ['linear'],
           ['get', 'casos'],
-          1, 6,
-          10, 20
+          1, 10,
+          10, 25
         ],
-        'circle-opacity': 0.95,
+        'circle-opacity': 0.9,
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#201245'
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+
+    // Agrega etiquetas con número de casos
+    map.addLayer({
+      id: 'etiquetas-casos',
+      type: 'symbol',
+      source: 'regiones-chile',
+      'source-layer': 'Chile_prueba',
+      layout: {
+        'text-field': ['get', 'casos'],
+        'text-size': 12,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-offset': [0, 0.5],
+        'text-anchor': 'top'
+      },
+      paint: {
+        'text-color': '#000000',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1
       }
     });
 
@@ -84,7 +79,7 @@
       const regionName = props["region"];
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(`<strong style='color:#201245;'>${regionName}</strong><br><span style='color:#594B9A;'>Casos: ${props.casos}</span>`)
+        .setHTML(`<strong style='color:#201245;'>${regionName}</strong><br><span style='color:#220F6;'>Casos: ${props.casos}</span>`)
         .addTo(map);
     });
 
