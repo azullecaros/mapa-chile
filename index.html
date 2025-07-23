@@ -8,7 +8,7 @@
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background-color: #ffffff; }
     #map { width: 100%; height: 100vh; }
     .mapboxgl-popup-content {
       background: #201245;
@@ -26,7 +26,7 @@
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/mapbox/light-v11', // fondo neutro claro
     center: [-71.5429, -35.6751],
     zoom: 4,
     projection: 'mercator'
@@ -71,15 +71,15 @@
         'text-anchor': 'top'
       },
       paint: {
-        'text-color': '#ffffff',
-        'text-halo-color': '#220F6',
+        'text-color': '#201245',
+        'text-halo-color': '#ffffff',
         'text-halo-width': 1
       }
     });
 
     map.on('click', 'puntos-regiones', (e) => {
       const props = e.features[0].properties;
-      const regionName = props["region"] || "Región no disponible";
+      const regionName = props["región"] || "Región no disponible";
       const casos = props["casos"] || 0;
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
