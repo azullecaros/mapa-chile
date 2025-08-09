@@ -1,35 +1,29 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Mapa de Iniciativas por Región</title>
+  <title>Mapa Universo Expansivo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F1F1F1;
-    }
-    #map {
-      width: 100%;
-      height: 100vh;
-    }
+    body { margin: 0; padding: 0; background: #F1F1F1; }
+    #map { width: 100%; height: 100vh; }
+    /* Popup con estilo UE */
     .mapboxgl-popup-content {
-      background: #201245;
-      color: white;
-      font-family: "DIN", sans-serif;
+      background: #201245; color: #fff;
+      font-family: "DIN", "DIN Offc Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 14px;
     }
+    .mapboxgl-popup-content strong { font-weight: 600; }
   </style>
 </head>
 <body>
-
 <div id="map"></div>
 
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYXp1bGFydGljbyIsImEiOiJjbWRkdzNwaDQwOTM0MmxuM3BzaTR2cmFlIn0.MNgBs36f3vX7syVEiS727g';
+  // Token que me diste
+  mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lMzA2cGRsMDF5dTJrcHVmMG9jNGhmNiJ9.CTHV_NvsqvAnyZ3ZRijiZQ';
 
   const map = new mapboxgl.Map({
     container: 'map',
@@ -40,73 +34,83 @@
   });
 
   map.on('load', () => {
-    // Color base del mapa
+    // Color de fondo del estilo del mapa
     map.setPaintProperty('background', 'background-color', '#C3C3C3');
 
-    map.addSource('regiones-chile', {
+    // Fuente: tu tileset
+    map.addSource('regiones-ue', {
       type: 'vector',
-      url: 'mapbox://azulartico.cmddycg7524611mlkndun5g74-5drn9'
+      url: 'mapbox://vhirschberg.16vzzos6'
     });
 
+    // CÍRCULOS: color #E2D2F6
     map.addLayer({
       id: 'puntos-regiones',
       type: 'circle',
-      source: 'regiones-chile',
-      'source-layer': 'Chile_prueba',
+      source: 'regiones-ue',
+      'source-layer': 'regiones_chile_multicasos-ddcmu8',
       paint: {
         'circle-color': '#E2D2F6',
+        // Tamaño según "total" (fallback a 1 si falta)
         'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'casos'],
-          1, 14,
-          10, 30
+          'interpolate', ['linear'], ['coalesce', ['get','total'], 1],
+          1, 12,
+          100, 16,
+          200, 20,
+          400, 26,
+          600, 32
         ],
         'circle-opacity': 1,
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#ffffff'
+        'circle-stroke-color': '#FFFFFF'
       }
     });
 
+    // ETIQUETA centrada: número total (puedo cambiarlo a manuales/maleta/mobilelab si prefieres)
     map.addLayer({
       id: 'etiquetas-casos',
       type: 'symbol',
-      source: 'regiones-chile',
-      'source-layer': 'Chile_prueba',
+      source: 'regiones-ue',
+      'source-layer': 'regiones_chile_multicasos-ddcmu8',
       layout: {
-        'text-field': ['get', 'casos'],
+        'text-field': ['to-string', ['coalesce', ['get','total'], 0]],
+        'text-font': ['DIN Offc Pro Medium', 'DIN Pro Medium', 'DIN 1451 Mittelschrift', 'Arial Unicode MS Regular'],
         'text-size': 12,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
-        'text-offset': [0, 0],
         'text-anchor': 'center',
-        'text-justify': 'center'
+        'text-offset': [0, 0]   // centrado exacto
       },
       paint: {
         'text-color': '#201245',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 0.5
+        'text-halo-color': '#FFFFFF',
+        'text-halo-width': 0.6
       }
     });
 
+    // POPUP: región + 3 categorías
     map.on('click', 'puntos-regiones', (e) => {
-      const props = e.features[0].properties;
-      const regionName = props["región"] || props["region"] || "Región no disponible";
-      const casos = props["casos"] || 0;
+      const p = e.features[0].properties;
+      const region    = p['región'] || p['region'] || 'Región no disponible';
+      const manuales  = p['manuales']  ?? 0;
+      const maleta    = p['maleta']    ?? 0;
+      const mobilelab = p['mobilelab'] ?? 0;
+
+      const html = `
+        <strong>${region}</strong><br>
+        Manuales: ${manuales}<br>
+        Maleta: ${maleta}<br>
+        Mobile Lab: ${mobilelab}
+      `;
+
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(`<strong>${regionName}</strong><br>Casos: ${casos}`)
+        .setHTML(html)
         .addTo(map);
     });
 
-    map.on('mouseenter', 'puntos-regiones', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', 'puntos-regiones', () => {
-      map.getCanvas().style.cursor = '';
-    });
+    // Cursor tipo puntero en hover
+    map.on('mouseenter', 'puntos-regiones', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'puntos-regiones', () => map.getCanvas().style.cursor = '');
   });
 </script>
-
 </body>
 </html>
