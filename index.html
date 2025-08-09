@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa Universo Expansivo</title>
 
+  <!-- Mapbox GL JS (misma versión en CSS y JS) -->
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 
@@ -12,6 +13,15 @@
     /* Página y contenedor */
     body { margin: 0; padding: 0; background: #F1F1F1; }
     #map { width: 100%; height: 100vh; }
+
+    /* Asegura que los controles de zoom se vean */
+    .mapboxgl-ctrl-top-right{
+      position: absolute;
+      top: 16px; right: 16px; z-index: 10;
+    }
+    .mapboxgl-ctrl-group{
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
 
     /* Popup tipo tarjeta */
     .mapboxgl-popup-content{
@@ -53,12 +63,12 @@
       projection: 'mercator'
     });
 
-    // Botones de zoom (+ / −) arriba a la derecha, sin brújula
-    const nav = new mapboxgl.NavigationControl({ showCompass:false, visualizePitch:false });
+    /* Botones de zoom (+ / −) arriba a la derecha */
+    const nav = new mapboxgl.NavigationControl({ showCompass: false, visualizePitch: false });
     map.addControl(nav, 'top-right');
 
     map.on('load', () => {
-      /* Color del "fondo" del estilo del mapa */
+      /* Color del fondo del estilo del mapa */
       map.setPaintProperty('background', 'background-color', '#C3C3C3');
 
       /* Fuente: tu tileset */
@@ -150,3 +160,4 @@
   </script>
 </body>
 </html>
+
