@@ -1,325 +1,168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Mapa Chile · 16 regiones · Mapbox GL JS v3</title>
-
-  <!-- Mapbox GL JS (v3.x) CSS & JS -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
-
-  <!-- Turf.js (cálculo de centroides) -->
-  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-
-  <!-- Geocoder plugin (opcional) -->
-  <link
-    rel="stylesheet"
-    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.css"
-    type="text/css"
-  />
-  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.min.js"></script>
-
-  <style>
-    :root {
-      --panel-bg: rgba(255, 255, 255, .92);
-      --panel-border: #e5e7eb;
-      --shadow: 0 8px 24px rgba(0,0,0,.08);
-      --text: #111827;
-    }
-    html, body { height: 100%; margin: 0; }
-    #map { position: absolute; inset: 0; }
-
-    .panel {
-      position: absolute; top: 12px; left: 12px; z-index: 3;
-      background: var(--panel-bg); border: 1px solid var(--panel-border);
-      border-radius: 12px; padding: 10px; box-shadow: var(--shadow);
-      display: flex; gap: 8px; align-items: center;
-    }
-    .panel button {
-      appearance: none; border: 1px solid var(--panel-border); border-radius: 10px;
-      padding: 8px 12px; font: 600 13px/1 system-ui, -apple-system, Segoe UI, Roboto;
-      background: white; cursor: pointer; transition: box-shadow .2s, transform .02s;
-    }
-    .panel button:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
-    .panel button:active { transform: translateY(1px); }
-
-    .legend {
-      position: absolute; bottom: 14px; left: 12px; z-index: 3;
-      background: var(--panel-bg); border: 1px solid var(--panel-border);
-      border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
-      font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto; color: var(--text);
-    }
-    .legend h4 { margin: 0 0 6px; font-size: 12px; }
-    .legend .scale { display: grid; grid-template-columns: repeat(6, 18px); gap: 4px; margin-bottom: 6px; }
-    .legend .box { width: 18px; height: 12px; border-radius: 3px; border: 1px solid #cbd5e1; }
-    .legend .labels { display: flex; justify-content: space-between; font-size: 11px; }
-
-    .credits {
-      position: absolute; right: 12px; bottom: 12px; z-index: 2; font: 12px/1.4 system-ui;
-      background: var(--panel-bg); padding: 6px 10px; border: 1px solid var(--panel-border);
-      border-radius: 10px; box-shadow: var(--shadow);
-    }
-  </style>
+<meta charset="utf-8" />
+<title>Mapa de Chile - Regiones y Casos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
+<link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.css" rel="stylesheet" />
+<style>
+  body { margin:0; padding:0; }
+  #map { position:absolute; top:0; bottom:0; width:100%; }
+  .mapboxgl-popup { max-width: 300px; font: 14px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif; }
+  .boton-chile {
+    position: absolute;
+    top: 10px; left: 10px;
+    z-index: 1;
+    background: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+</style>
 </head>
 <body>
-  <div class="panel">
-    <button id="btnChile">Enfocar Chile</button>
-    <button id="btnReset">Vista global</button>
-  </div>
-  <div id="map" aria-label="Mapa de Chile con 16 regiones"></div>
-  <div class="legend" id="legend"></div>
-  <div class="credits">Arrastra para mover, usa la rueda para zoom. Geolocalización requiere HTTPS.</div>
 
-  <script>
-    // ====== 1) TOKEN de tu cuenta (público, provisto por ti) ======
-    mapboxgl.accessToken = "pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg";
+<div id="map"></div>
+<div class="boton-chile" id="btnChile">Enfocar Chile</div>
 
-    // ====== 2) Configuración base del mapa ======
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
-      center: [-70.6693, -33.4489], // Santiago aprox
-      zoom: 4,
-      hash: true,
-      cooperativeGestures: true
-    });
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script>
+mapboxgl.accessToken = "pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg";
 
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
-    map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
-    map.addControl(new mapboxgl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
+// Datos ficticios
+const datosRegiones = [
+  { region: "Arica y Parinacota", manuales: 120, maleta: 45, mobilelab: 30 },
+  { region: "Tarapacá", manuales: 200, maleta: 60, mobilelab: 50 },
+  { region: "Antofagasta", manuales: 300, maleta: 80, mobilelab: 70 },
+  { region: "Atacama", manuales: 150, maleta: 50, mobilelab: 40 },
+  { region: "Coquimbo", manuales: 400, maleta: 120, mobilelab: 100 },
+  { region: "Valparaíso", manuales: 600, maleta: 200, mobilelab: 150 },
+  { region: "Metropolitana de Santiago", manuales: 1200, maleta: 500, mobilelab: 400 },
+  { region: "Libertador General Bernardo O'Higgins", manuales: 500, maleta: 160, mobilelab: 140 },
+  { region: "Maule", manuales: 350, maleta: 110, mobilelab: 90 },
+  { region: "Ñuble", manuales: 220, maleta: 80, mobilelab: 60 },
+  { region: "Biobío", manuales: 550, maleta: 180, mobilelab: 150 },
+  { region: "La Araucanía", manuales: 300, maleta: 100, mobilelab: 90 },
+  { region: "Los Ríos", manuales: 200, maleta: 70, mobilelab: 60 },
+  { region: "Los Lagos", manuales: 400, maleta: 150, mobilelab: 120 },
+  { region: "Aysén del General Carlos Ibáñez del Campo", manuales: 80, maleta: 30, mobilelab: 25 },
+  { region: "Magallanes y de la Antártica Chilena", manuales: 50, maleta: 20, mobilelab: 15 }
+];
 
-    // Buscador (opcional) restringido a Chile
-    try {
-      const geocoder = new MapboxGeocoder({
-        accessToken: mapboxgl.accessToken,
-        mapboxgl: mapboxgl,
-        placeholder: 'Buscar lugares en Chile…',
-        countries: 'cl',
-        language: 'es',
-        marker: false
-      });
-      map.addControl(geocoder, 'top-left');
-    } catch (e) { console.warn('Geocoder opcional no disponible:', e); }
+// Crear el mapa
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/standard',
+  center: [-70.67, -33.45],
+  zoom: 4
+});
 
-    // ====== 3) Datos ficticios por región (reemplazables por tu .geojson) ======
-    // Clave = nombre EXACTO de la propiedad "región" en tu tileset/GeoJSON.
-    const DATA_REGIONES = {
-      'Arica y Parinacota':      { manuales: 120, maleta: 45,  mobilelab: 30 },
-      'Tarapacá':                 { manuales: 140, maleta: 60,  mobilelab: 35 },
-      'Antofagasta':              { manuales: 260, maleta: 110, mobilelab: 80 },
-      'Atacama':                  { manuales: 180, maleta: 70,  mobilelab: 40 },
-      'Coquimbo':                 { manuales: 320, maleta: 150, mobilelab: 90 },
-      'Valparaíso':               { manuales: 900, maleta: 410, mobilelab: 220 },
-      'Metropolitana de Santiago':{ manuales: 2200, maleta: 1100, mobilelab: 600 },
-      'O’Higgins':                { manuales: 430, maleta: 180, mobilelab: 120 },
-      'Maule':                    { manuales: 500, maleta: 220, mobilelab: 140 },
-      'Ñuble':                    { manuales: 240, maleta: 100, mobilelab: 70 },
-      'Biobío':                   { manuales: 760, maleta: 340, mobilelab: 200 },
-      'La Araucanía':             { manuales: 520, maleta: 240, mobilelab: 160 },
-      'Los Ríos':                 { manuales: 300, maleta: 140, mobilelab: 90 },
-      'Los Lagos':                { manuales: 480, maleta: 210, mobilelab: 150 },
-      'Aysén':                    { manuales: 80,  maleta: 35,  mobilelab: 25 },
-      'Magallanes y de la Antártica Chilena': { manuales: 70, maleta: 30, mobilelab: 20 }
-    };
+// Controles
+map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
+map.addControl(new mapboxgl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true
+}), 'top-right');
 
-    // Utilidad: formatear numeros en español
-    const fmt = new Intl.NumberFormat('es-CL');
+const geocoder = new MapboxGeocoder({
+  accessToken: mapboxgl.accessToken,
+  mapboxgl: mapboxgl,
+  countries: 'cl',
+  language: 'es',
+  placeholder: 'Buscar en Chile'
+});
+map.addControl(geocoder, 'top-left');
 
-    // ====== 4) Fuente vectorial de tus regiones (tileset Mapbox) ======
-    const VECTOR_SOURCE_ID = 'regiones-tiles';
-    const VECTOR_URL = 'mapbox://vhirschberg.cst71ag7'; // <- ID tileset
-    const SOURCE_LAYER = 'regiones_chile_simple-4ltyfv';
+// Botón enfocar Chile
+document.getElementById('btnChile').addEventListener('click', () => {
+  geocoder.query('Chile');
+});
 
-    // Construye una expresión "match" nombre->total para colorear
-    function buildTotalExpr() {
-      const pairs = [];
-      for (const [region, vals] of Object.entries(DATA_REGIONES)) {
-        const total = (vals.manuales||0) + (vals.maleta||0) + (vals.mobilelab||0);
-        pairs.push(region, total);
-      }
-      return ['match', ['get', 'región'], ...pairs, 0];
+// Esperar a que cargue el mapa
+map.on('load', () => {
+  // Añadir el tileset de regiones
+  map.addSource('regiones', {
+    type: 'vector',
+    url: 'mapbox://vhirschberg.cst71ag7'
+  });
+
+  // Generar expresión para color
+  const expression = ['match', ['get', 'región']];
+  datosRegiones.forEach(d => {
+    const total = d.manuales + d.maleta + d.mobilelab;
+    let color;
+    if (total > 800) color = '#800026';
+    else if (total > 500) color = '#BD0026';
+    else if (total > 300) color = '#E31A1C';
+    else if (total > 200) color = '#FC4E2A';
+    else if (total > 100) color = '#FD8D3C';
+    else color = '#FEB24C';
+    expression.push(d.region, color);
+  });
+  expression.push('#FFEDA0'); // color por defecto
+
+  // Capa de relleno
+  map.addLayer({
+    id: 'regiones-fill',
+    type: 'fill',
+    source: 'regiones',
+    'source-layer': 'regiones_chile_simple-4ltyfv',
+    paint: {
+      'fill-color': expression,
+      'fill-opacity': 0.6
     }
+  });
 
-    // Paleta y cortes (por total de casos)
-    const BREAKS = [200, 500, 1000, 2000, 3000];
-    const COLORS = ['#eff3ff','#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c'];
-
-    function buildFillColorExpr() {
-      const totalExpr = buildTotalExpr();
-      // step(base, color0, break1, color1, break2, color2, ...)
-      return ['step', totalExpr,
-        COLORS[0],
-        BREAKS[0], COLORS[1],
-        BREAKS[1], COLORS[2],
-        BREAKS[2], COLORS[3],
-        BREAKS[3], COLORS[4],
-        BREAKS[4], COLORS[5]
-      ];
+  // Borde
+  map.addLayer({
+    id: 'regiones-outline',
+    type: 'line',
+    source: 'regiones',
+    'source-layer': 'regiones_chile_simple-4ltyfv',
+    paint: {
+      'line-color': '#555',
+      'line-width': 1
     }
+  });
 
-    // ====== 5) Inicialización de capas ======
-    map.on('load', () => {
-      // Fuente vectorial
-      if (!map.getSource(VECTOR_SOURCE_ID)) {
-        map.addSource(VECTOR_SOURCE_ID, { type: 'vector', url: VECTOR_URL });
-      }
-
-      // Capa de relleno (coropleta por total)
-      map.addLayer({
-        id: 'regiones-fill',
-        type: 'fill',
-        source: VECTOR_SOURCE_ID,
-        'source-layer': SOURCE_LAYER,
-        paint: {
-          'fill-color': buildFillColorExpr(),
-          'fill-opacity': 0.78
-        }
-      });
-
-      // Capa de borde
-      map.addLayer({
-        id: 'regiones-outline',
-        type: 'line',
-        source: VECTOR_SOURCE_ID,
-        'source-layer': SOURCE_LAYER,
-        paint: {
-          'line-color': '#0f172a',
-          'line-width': 0.6,
-          'line-opacity': 0.6
-        }
-      });
-
-      // Capa de borde resaltado (hover)
-      map.addLayer({
-        id: 'regiones-outline-hover',
-        type: 'line',
-        source: VECTOR_SOURCE_ID,
-        'source-layer': SOURCE_LAYER,
-        paint: {
-          'line-color': '#111827',
-          'line-width': 2.0
-        },
-        filter: ['==', ['get','región'], ''] // se actualiza en runtime
-      });
-
-      // Enfocar Chile al cargar
-      fitToChile();
-      renderLegend();
-    });
-
-    // ====== 6) Interacción ======
-    // Hover: resalta borde
-    map.on('mousemove', 'regiones-fill', (e) => {
-      const f = e.features && e.features[0];
-      if (!f) return;
-      const nombre = f.properties['región'];
-      map.setFilter('regiones-outline-hover', ['==', ['get','región'], nombre]);
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'regiones-fill', () => {
-      map.setFilter('regiones-outline-hover', ['==', ['get','región'], '']);
-      map.getCanvas().style.cursor = '';
-    });
-
-    // Click: popup con ficha de la región
-    map.on('click', 'regiones-fill', async (e) => {
-      const f = e.features && e.features[0];
-      if (!f) return;
-      const nombre = f.properties['región'];
-      const stats = DATA_REGIONES[nombre] || { manuales: 0, maleta: 0, mobilelab: 0 };
-      const total = stats.manuales + stats.maleta + stats.mobilelab;
-
-      // Centroide aproximado combinando geometrías visibles de la fuente
-      let centro = [e.lngLat.lng, e.lngLat.lat];
-      try {
-        const feats = map.querySourceFeatures(VECTOR_SOURCE_ID, {
-          sourceLayer: SOURCE_LAYER,
-          filter: ['==', ['get','región'], nombre]
-        });
-        if (feats && feats.length) {
-          const fc = { type: 'FeatureCollection', features: feats.map(ff => ({ type:'Feature', properties:{}, geometry: ff.geometry })) };
-          const c = turf.centerOfMass(fc).geometry.coordinates;
-          if (Array.isArray(c)) centro = c;
-        }
-      } catch (err) { /* fallback usa e.lngLat */ }
-
-      const html = `
-        <div style="font: 600 14px system-ui; margin-bottom: 6px;">${nombre}</div>
-        <div style="font: 12px system-ui; color:#111;">
-          <div><strong>Manuales:</strong> ${fmt.format(stats.manuales)}</div>
-          <div><strong>Maleta:</strong> ${fmt.format(stats.maleta)}</div>
-          <div><strong>Mobile Lab:</strong> ${fmt.format(stats.mobilelab)}</div>
-          <div style="margin-top:4px; border-top:1px solid #e5e7eb; padding-top:4px;"><strong>Total casos:</strong> ${fmt.format(total)}</div>
-          <div style="margin-top:4px; color:#334155;">Centro aproximado: ${centro[1].toFixed(4)}, ${centro[0].toFixed(4)}</div>
-        </div>
-      `;
-      new mapboxgl.Popup({ offset: 12 })
+  // Popup al hacer click
+  map.on('click', 'regiones-fill', (e) => {
+    const nombre = e.features[0].properties['región'];
+    const datos = datosRegiones.find(r => r.region === nombre);
+    if (datos) {
+      const total = datos.manuales + datos.maleta + datos.mobilelab;
+      const centro = turf.centerOfMass(e.features[0]).geometry.coordinates;
+      new mapboxgl.Popup()
         .setLngLat(centro)
-        .setHTML(html)
+        .setHTML(`
+          <strong>${nombre}</strong><br>
+          Manuales: ${datos.manuales}<br>
+          Maleta: ${datos.maleta}<br>
+          Mobile Lab: ${datos.mobilelab}<br>
+          <em>Total: ${total}</em><br>
+          Coordenadas: ${centro[1].toFixed(4)}, ${centro[0].toFixed(4)}
+        `)
         .addTo(map);
-    });
-
-    // ====== 7) Botones panel ======
-    document.getElementById('btnChile').addEventListener('click', fitToChile);
-    document.getElementById('btnReset').addEventListener('click', () => {
-      map.flyTo({ center: [0, 20], zoom: 1.4, pitch: 0, bearing: 0 });
-    });
-
-    async function fitToChile() {
-      try {
-        const url = new URL('https://api.mapbox.com/geocoding/v5/mapbox.places/Chile.json');
-        url.searchParams.set('types', 'country');
-        url.searchParams.set('language', 'es');
-        url.searchParams.set('access_token', mapboxgl.accessToken);
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        const feature = (data && data.features && data.features[0]) || null;
-        if (feature && Array.isArray(feature.bbox)) {
-          const [minLon, minLat, maxLon, maxLat] = feature.bbox;
-          map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 48, duration: 1200 });
-        } else if (feature && Array.isArray(feature.center)) {
-          map.flyTo({ center: feature.center, zoom: 3.6, duration: 1000 });
-        }
-      } catch (e) { console.warn('No se pudo enfocar Chile:', e); }
     }
+  });
 
-    // ====== 8) Leyenda ======
-    function renderLegend() {
-      const el = document.getElementById('legend');
-      el.innerHTML = '';
-      const title = document.createElement('h4');
-      title.textContent = 'Total de casos (Manuales + Maleta + Mobile Lab)';
-      el.appendChild(title);
-
-      const scale = document.createElement('div');
-      scale.className = 'scale';
-      COLORS.forEach(c => {
-        const box = document.createElement('div');
-        box.className = 'box'; box.style.background = c; scale.appendChild(box);
-      });
-      el.appendChild(scale);
-
-      const labels = document.createElement('div');
-      labels.className = 'labels';
-      const ranges = ['0–'+BREAKS[0],
-                      (BREAKS[0]+1)+'–'+BREAKS[1],
-                      (BREAKS[1]+1)+'–'+BREAKS[2],
-                      (BREAKS[2]+1)+'–'+BREAKS[3],
-                      (BREAKS[3]+1)+'–'+BREAKS[4],
-                      (BREAKS[4]+1)+'+'];
-      labels.innerHTML = `<span>${ranges[0]}</span><span>${ranges[5]}</span>`;
-      // Etiquetas extremas; las intermedias se intuyen por la escala
-      el.appendChild(labels);
-    }
-
-    // ====== 9) Recalcular colores si cambian datos ======
-    // Si luego reemplazas DATA_REGIONES por tu GeoJSON, puedes llamar:
-    // map.setPaintProperty('regiones-fill', 'fill-color', buildFillColorExpr());
-
-    // ====== 10) Manejo de errores ======
-    map.on('error', (e) => { console.error('Mapbox GL JS Error:', e && e.error ? e.error : e); });
-  </script>
+  // Cambiar cursor
+  map.on('mouseenter', 'regiones-fill', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'regiones-fill', () => {
+    map.getCanvas().style.cursor = '';
+  });
+});
+</script>
 </body>
 </html>
+
 
