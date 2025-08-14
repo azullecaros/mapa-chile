@@ -3,132 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Regiones Chile</title>
+    <title>Prueba Mapa Chile</title>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-
-        /* Etiquetas sobre los círculos */
-        .circle-label {
-            color: #201245;
-            font-weight: bold;
-            text-align: center;
-            font-size: 12px;
-        }
-
-        /* Estilo del popup */
-        .mapboxgl-popup {
-            max-width: 300px;
-        }
-
-        .popup-content {
-            font-family: Arial, sans-serif;
-        }
-
-        .popup-header {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-
-        .popup-grid {
-            display: flex;
-            gap: 5px;
-        }
-
-        .popup-item {
-            flex: 1;
-            background-color: #f4f4f4;
-            border-radius: 8px;
-            padding: 6px;
-            text-align: center;
-        }
-
-        .popup-item strong {
-            display: block;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
 <div id="map"></div>
 
 <script>
+    // Token de Mapbox
     mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg';
 
+    // Crear mapa
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/light-v11',
-        center: [-71.7, -35.4],
+        center: [-71.7, -35.4], // Chile
         zoom: 4.5
     });
 
     map.on('load', () => {
+        // Agregar la fuente desde tu tileset
         map.addSource('regiones', {
             type: 'vector',
             url: 'mapbox://vhirschberg.69tq4hif'
         });
 
+        // Capa para mostrar puntos
         map.addLayer({
-            id: 'regiones-circles',
+            id: 'puntos-regiones',
             type: 'circle',
             source: 'regiones',
             'source-layer': 'regiones_chile_centros-3ktyh3',
             paint: {
-                'circle-radius': 10,
+                'circle-radius': 8,
                 'circle-color': '#E2D2F6',
                 'circle-stroke-width': 1,
-                'circle-stroke-color': '#fff'
+                'circle-stroke-color': '#000'
             }
-        });
-
-        map.addLayer({
-            id: 'regiones-labels',
-            type: 'symbol',
-            source: 'regiones',
-            'source-layer': 'regiones_chile_centros-3ktyh3',
-            layout: {
-                'text-field': ['get', 'manuales'],
-                'text-size': 12
-            },
-            paint: {
-                'text-color': '#201245'
-            }
-        });
-
-        // Popup al hacer click
-        map.on('click', 'regiones-circles', (e) => {
-            const props = e.features[0].properties;
-            const html = `
-                <div class="popup-content">
-                    <div class="popup-header">${props.región}</div>
-                    <div class="popup-grid">
-                        <div class="popup-item" style="background-color:#DCD6F7">
-                            <strong>${props.manuales}</strong> Manuales
-                        </div>
-                        <div class="popup-item" style="background-color:#B6E0E2">
-                            <strong>${props.maleta}</strong> Maleta
-                        </div>
-                        <div class="popup-item" style="background-color:#B8E1DD">
-                            <strong>${props["laboratorio móvil"]}</strong> MobileLab
-                        </div>
-                    </div>
-                </div>
-            `;
-            new mapboxgl.Popup()
-                .setLngLat(e.lngLat)
-                .setHTML(html)
-                .addTo(map);
-        });
-
-        // Cambiar cursor sobre círculos
-        map.on('mouseenter', 'regiones-circles', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'regiones-circles', () => {
-            map.getCanvas().style.cursor = '';
         });
     });
 </script>
