@@ -6,22 +6,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-    body { margin: 0; padding: 0; background-color: #F1F1F1; }
+    body { margin: 0; padding: 0; background-color: #F1F1F1; font-family: 'Poppins', sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     .popup-container {
-        font-family: Arial, sans-serif;
         background: white;
-        border-radius: 15px;
-        padding: 20px;
+        border-radius: 20px;
+        padding: 25px;
         text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        width: 300px;
+        box-shadow: 0 4px 25px rgba(0,0,0,0.15);
+        width: 340px;
     }
     .popup-container h3 {
-        margin: 0 0 15px;
-        font-size: 20px;
+        margin: 0 0 20px;
+        font-size: 22px;
         color: #2e1a47;
+        font-weight: 800;
     }
     .stats {
         display: flex;
@@ -30,17 +31,19 @@
     .stat {
         flex: 1;
         margin: 0 5px;
-        padding: 15px;
-        border-radius: 10px;
+        padding: 18px;
+        border-radius: 15px;
         color: #2e1a47;
+        font-weight: 600;
     }
     .manuales { background-color: #E2D2F6; }
     .maleta { background-color: #B0C4DE; }
     .mobilelab { background-color: #A0D6D6; }
     .stat strong {
         display: block;
-        font-size: 22px;
+        font-size: 24px;
         margin-bottom: 5px;
+        font-weight: 800;
     }
 </style>
 </head>
@@ -58,15 +61,15 @@ const map = new mapboxgl.Map({
     zoom: 4
 });
 
-// Control de zoom en la parte superior derecha
+// Control de zoom
 map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-// Datos precargados de las regiones
+// Datos precargados
 const regionesData = [
     { nombre: "Arica y Parinacota", coords: [-70.2979, -18.4746], manuales: 120, maleta: 95, mobilelab: 80 },
     { nombre: "Tarapacá", coords: [-69.3322, -20.2133], manuales: 150, maleta: 130, mobilelab: 100 },
     { nombre: "Antofagasta", coords: [-70.4000, -23.6500], manuales: 200, maleta: 180, mobilelab: 140 },
-    { nombre: "Atacama", coords: [-70.3300, -27.3700], manuales: 170, maleta: 160, mobilelab: 110 },
+    { nombre: "Atacama", coords: [-70.3300, -27.3700], manuales: 180, maleta: 130, mobilelab: 90 },
     { nombre: "Coquimbo", coords: [-71.2500, -29.9533], manuales: 210, maleta: 190, mobilelab: 150 },
     { nombre: "Valparaíso", coords: [-71.6127, -33.0458], manuales: 300, maleta: 250, mobilelab: 200 },
     { nombre: "Metropolitana", coords: [-70.6483, -33.4569], manuales: 800, maleta: 700, mobilelab: 600 },
@@ -81,7 +84,7 @@ const regionesData = [
     { nombre: "Magallanes", coords: [-70.9336, -53.1548], manuales: 80, maleta: 70, mobilelab: 50 }
 ];
 
-// Agregar puntos y popups
+// Eliminar popups por defecto
 map.on('load', () => {
     regionesData.forEach(region => {
         const popupHTML = `
@@ -104,19 +107,17 @@ map.on('load', () => {
             </div>
         `;
 
-        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupHTML);
+        const popup = new mapboxgl.Popup({ offset: 25, closeOnClick: true }).setHTML(popupHTML);
 
-        new mapboxgl.Marker({ color: '#E2D2F6' })
-            .setLngLat(region.coords)
-            .setPopup(popup)
-            .addTo(map);
+        new mapboxgl.Marker({
+            color: '#E2D2F6'
+        })
+        .setLngLat(region.coords)
+        .setPopup(popup)
+        .addTo(map);
     });
 });
 </script>
 
 </body>
 </html>
-
-
-
-
