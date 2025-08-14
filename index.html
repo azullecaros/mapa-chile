@@ -14,9 +14,9 @@
     body { margin: 0; padding: 0; background: #F1F1F1; }
     #map { width: 100%; height: 100vh; }
 
-    /* Controles de zoom visibles */
-    .mapboxgl-ctrl-top-right { position:absolute; top:16px; right:16px; z-index:10; }
-    .mapboxgl-ctrl-group { box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+    /* Controles visibles */
+    .mapboxgl-ctrl-top-right{ position:absolute; top:16px; right:16px; z-index:10; }
+    .mapboxgl-ctrl-group{ box-shadow: 0 4px 12px rgba(0,0,0,.15); }
 
     /* --- Popup tarjeta --- */
     .mapboxgl-popup-content{
@@ -25,7 +25,7 @@
       box-shadow:0 14px 40px rgba(32,18,69,.18);
       padding:20px 22px;
       font-family:"DIN","DIN Offc Pro",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      width: min(92vw, 640px);
+      width: min(92vw, 640px);  /* responsivo */
       box-sizing: border-box;
     }
     .mapboxgl-popup-close-button{ color:#201245; font-size:20px; }
@@ -50,154 +50,4 @@
     }
     .stat-item{
       border-radius:22px;
-      padding:14px 10px;
-      text-align:center;
-      min-height:132px;
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-    }
-    .bg-1{ background:#E2D2F6; }
-    .bg-2{ background:#89ACDB; }
-    .bg-3{ background:#A3D7DE; }
-
-    .stat-value{
-      font-weight:800;  /* extrabold */
-      font-size: clamp(22px, 3.2vw, 28px);
-      line-height: 1.05;
-      color:#201245;
-      margin-bottom:8px;
-    }
-    .stat-line-1{ font-size:14px; margin-bottom:2px; }
-    .stat-line-2{ font-size:15px; font-weight:600; }
-
-    /* Tipografía de etiquetas del mapa */
-    .mapboxgl-canvas-container { font-family:"DIN","DIN Offc Pro",sans-serif; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-
-  <script>
-    // Token
-    mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lMzA2cGRsMDF5dTJrcHVmMG9jNGhmNiJ9.CTHV_NvsqvAnyZ3ZRijiZQ';
-
-    // Config
-    const TILESET_URL   = 'mapbox://vhirschberg.16vzzos6';
-    const SOURCE_ID     = 'regiones-ue';
-    const SOURCE_LAYER  = 'regiones_chile_multicasos-ddcmu8'; // <-- si tras reemplazar datos cambia, actualiza este nombre
-
-    // Mapa
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-71.5429, -35.6751],
-      zoom: 4,
-      projection: 'mercator',
-      attributionControl: false
-    });
-
-    // Atribución compacta (requerido por licencia)
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
-
-    // Botones de zoom
-    map.addControl(new mapboxgl.NavigationControl({ showCompass:false, visualizePitch:false }), 'top-right');
-
-    map.on('load', () => {
-      // Color base del estilo del mapa
-      map.setPaintProperty('background', 'background-color', '#C3C3C3');
-
-      // Fuente: tileset
-      map.addSource(SOURCE_ID, { type: 'vector', url: TILESET_URL });
-
-      // Expresión "total" calculada al vuelo: manuales + maleta + mobilelab
-      const totalExpr = [
-        '+',
-        ['coalesce', ['get','manuales'], 0],
-        ['coalesce', ['get','maleta'], 0],
-        ['coalesce', ['get','mobilelab'], 0]
-      ];
-
-      // Círculos (E2D2F6) con borde blanco, tamaño según totalExpr
-      map.addLayer({
-        id: 'puntos-regiones',
-        type: 'circle',
-        source: SOURCE_ID,
-        'source-layer': SOURCE_LAYER,
-        paint: {
-          'circle-color': '#E2D2F6',
-          'circle-radius': [
-            'interpolate', ['linear'], totalExpr,
-            1, 12, 100, 16, 200, 20, 400, 26, 600, 32
-          ],
-          'circle-opacity': 1,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#FFFFFF'
-        }
-      });
-
-      // Número centrado (totalExpr) encima del círculo
-      map.addLayer({
-        id: 'etiquetas-casos',
-        type: 'symbol',
-        source: SOURCE_ID,
-        'source-layer': SOURCE_LAYER,
-        layout: {
-          'text-field': ['to-string', totalExpr],
-          'text-font': ['DIN Offc Pro Medium','DIN Pro Medium','DIN 1451 Mittelschrift','Arial Unicode MS Regular'],
-          'text-size': 12,
-          'text-anchor': 'center',
-          'text-offset': [0, 0],
-          'text-allow-overlap': true,
-          'text-ignore-placement': true
-        },
-        paint: {
-          'text-color': '#201245',
-          'text-halo-color': '#FFFFFF',
-          'text-halo-width': 0.6
-        }
-      });
-
-      // Popup con 3 cajas
-      map.on('click', 'puntos-regiones', (e) => {
-        const p = e.features[0].properties;
-        const region    = p['región'] || p['region'] || 'Región no disponible';
-        const manuales  = Number(p['manuales']  ?? 0);
-        const maleta    = Number(p['maleta']    ?? 0);
-        const mobilelab = Number(p['mobilelab'] ?? p['laboratorio móvil'] ?? 0);
-        const fmt = (n) => new Intl.NumberFormat('es-CL').format(n);
-
-        const html = `
-          <div class="popup">
-            <div class="popup-title">${region}</div>
-            <div class="popup-stats">
-              <div class="stat-item bg-1">
-                <div class="stat-value">${fmt(manuales)}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Manuales</div>
-              </div>
-              <div class="stat-item bg-2">
-                <div class="stat-value">${fmt(maleta)}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Maleta</div>
-              </div>
-              <div class="stat-item bg-3">
-                <div class="stat-value">${fmt(mobilelab)}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Mobile Lab</div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        new mapboxgl.Popup({ maxWidth: '640px' })
-          .setLngLat(e.lngLat)
-          .setHTML(html)
-          .addTo(map);
-      });
-
-      // Cursor tipo puntero
-      map.on('mouseenter', 'puntos-regiones', () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', 'puntos-regiones', () => map.getCanvas().style.cursor = '');
-    });
-  </script>
-</body>
-</html>
+      paddin
