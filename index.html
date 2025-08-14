@@ -10,7 +10,7 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 
   <style>
-    body { margin: 0; padding: 0; background: #F1F1F1; }
+    body { margin: 0; padding: 0; }
     #map { width: 100%; height: 100vh; }
     .mapboxgl-popup-content{
       background:#FFFFFF; color:#201245;
@@ -63,10 +63,10 @@
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-71.5429, -35.6751],
-      zoom: 4
+      zoom: 4.5 // zoom inicial centrado en Chile
     });
 
-    // Valores random para cada región (por nombre)
+    // Datos simulados para cada región
     const datosExtra = {};
     const regiones = [
       "Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso",
@@ -74,19 +74,19 @@
       "Los Ríos","Los Lagos","Aysén","Magallanes"
     ];
     regiones.forEach(r => {
-      datosExtra[r] = {
-        Manuales: Math.floor(Math.random()*300)+100,
-        Maleta: Math.floor(Math.random()*300)+100,
-        MobileLab: Math.floor(Math.random()*300)+100
-      };
+      const Manuales = Math.floor(Math.random()*300)+100;
+      const Maleta = Math.floor(Math.random()*300)+100;
+      const MobileLab = Math.floor(Math.random()*300)+100;
+      datosExtra[r] = {Manuales, Maleta, MobileLab, Total: Manuales+Maleta+MobileLab};
     });
 
     map.on('load', () => {
       map.addSource('regiones', {
         type: 'vector',
-        url: 'mapbox://vhirschberg.cst71ag7' // tu tileset simple
+        url: 'mapbox://vhirschberg.cst71ag7' // tileset simple
       });
 
+      // Crear capa de puntos con tamaño basado en datosExtra
       map.addLayer({
         id: 'puntos',
         type: 'circle',
@@ -94,15 +94,32 @@
         'source-layer': 'regiones_chile_simple-4lfyfv',
         paint: {
           'circle-color': '#E2D2F6',
-          'circle-radius': 10,
+          'circle-radius': [
+            'interpolate', ['linear'],
+            ['to-number', ['get', 'Total']],
+            300, 8,
+            900, 30
+          ],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#FFFFFF'
         }
       });
 
+      // Reemplazar el valor de Total en cada feature
+      map.on('render', () => {
+        const features = map.querySourceFeatures('regiones', { sourceLayer: 'regiones_chile_simple-4lfyfv' });
+        features.forEach(f => {
+          const nombreRegion = f.properties.región || f.properties.region;
+          if (nombreRegion && datosExtra[nombreRegion]) {
+            f.properties.Total = datosExtra[nombreRegion].Total;
+          }
+        });
+      });
+
+      // Popup
       map.on('click', 'puntos', (e) => {
         const nombreRegion = e.features[0].properties.región || e.features[0].properties.region;
-        const datos = datosExtra[nombreRegion] || {Manuales:0, Maleta:0, MobileLab:0};
+        const datos = datosExtra[nombreRegion] || {Manuales:0, Maleta:0, MobileLab:0, Total:0};
         const fmt = (n) => new Intl.NumberFormat('es-CL').format(n);
 
         const html = `
@@ -140,4 +157,5 @@
   </script>
 </body>
 </html>
+
 
