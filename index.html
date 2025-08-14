@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa Universo Expansivo</title>
 
-  <!-- Mapbox GL -->
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 
   <style>
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background: #F1F1F1; }
     #map { width: 100%; height: 100vh; }
+    .mapboxgl-ctrl-top-right{ position:absolute; top:16px; right:16px; z-index:10; }
+    .mapboxgl-ctrl-group{ box-shadow:0 4px 12px rgba(0,0,0,.15); }
     .mapboxgl-popup-content{
       background:#FFFFFF; color:#201245;
       border:1px solid #E2D2F6; border-radius:24px;
@@ -21,11 +22,15 @@
       width: min(92vw, 640px);
       box-sizing: border-box;
     }
+    .mapboxgl-popup-close-button{ color:#201245; font-size:20px; }
     .popup-title{
       font-weight:700;
       font-size: clamp(22px, 3.2vw, 28px);
       line-height: 1.15;
       margin: 6px 8px 16px;
+      padding-right: 28px;
+      word-break: break-word;
+      hyphens: auto;
     }
     .popup-stats{
       display:grid;
@@ -46,11 +51,13 @@
     .stat-value{
       font-weight:800;
       font-size: clamp(22px, 3.2vw, 28px);
+      line-height: 1.05;
       color:#201245;
       margin-bottom:8px;
     }
     .stat-line-1{ font-size:14px; margin-bottom:2px; }
     .stat-line-2{ font-size:15px; font-weight:600; }
+    .mapboxgl-canvas-container { font-family:"DIN","DIN Offc Pro",sans-serif; }
   </style>
 </head>
 <body>
@@ -63,81 +70,85 @@
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-71.5429, -35.6751],
-      zoom: 4.5 // zoom inicial centrado en Chile
+      zoom: 4,
+      projection: 'mercator',
+      attributionControl: false
     });
 
-    // Datos simulados para cada región
-    const datosExtra = {};
-    const regiones = [
-      "Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso",
-      "Metropolitana de Santiago","O’Higgins","Maule","Ñuble","Biobío","La Araucanía",
-      "Los Ríos","Los Lagos","Aysén","Magallanes"
-    ];
-    regiones.forEach(r => {
-      const Manuales = Math.floor(Math.random()*300)+100;
-      const Maleta = Math.floor(Math.random()*300)+100;
-      const MobileLab = Math.floor(Math.random()*300)+100;
-      datosExtra[r] = {Manuales, Maleta, MobileLab, Total: Manuales+Maleta+MobileLab};
-    });
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+    const nav = new mapboxgl.NavigationControl({ showCompass:false, visualizePitch:false });
+    map.addControl(nav, 'top-right');
 
     map.on('load', () => {
-      map.addSource('regiones', {
+      map.setPaintProperty('background', 'background-color', '#C3C3C3');
+
+      map.addSource('regiones-ue', {
         type: 'vector',
-        url: 'mapbox://vhirschberg.cst71ag7' // tileset simple
+        url: 'mapbox://vhirschberg.cst71ag7'
       });
 
-      // Crear capa de puntos con tamaño basado en datosExtra
       map.addLayer({
-        id: 'puntos',
+        id: 'puntos-regiones',
         type: 'circle',
-        source: 'regiones',
-        'source-layer': 'regiones_chile_simple-4lfyfv',
+        source: 'regiones-ue',
+        'source-layer': 'regiones_chile_simple-4ltyfv',
         paint: {
           'circle-color': '#E2D2F6',
           'circle-radius': [
-            'interpolate', ['linear'],
-            ['to-number', ['get', 'Total']],
-            300, 8,
-            900, 30
+            'interpolate', ['linear'], ['coalesce', ['get','total'], 1],
+            1, 12, 100, 16, 200, 20, 400, 26, 600, 32
           ],
+          'circle-opacity': 1,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#FFFFFF'
         }
       });
 
-      // Reemplazar el valor de Total en cada feature
-      map.on('render', () => {
-        const features = map.querySourceFeatures('regiones', { sourceLayer: 'regiones_chile_simple-4lfyfv' });
-        features.forEach(f => {
-          const nombreRegion = f.properties.región || f.properties.region;
-          if (nombreRegion && datosExtra[nombreRegion]) {
-            f.properties.Total = datosExtra[nombreRegion].Total;
-          }
-        });
+      map.addLayer({
+        id: 'etiquetas-casos',
+        type: 'symbol',
+        source: 'regiones-ue',
+        'source-layer': 'regiones_chile_simple-4ltyfv',
+        layout: {
+          'text-field': ['to-string', ['coalesce', ['get','total'], 0]],
+          'text-font': ['DIN Offc Pro Medium','DIN Pro Medium','DIN 1451 Mittelschrift','Arial Unicode MS Regular'],
+          'text-size': 12,
+          'text-anchor': 'center',
+          'text-offset': [0, 0],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true
+        },
+        paint: {
+          'text-color': '#201245',
+          'text-halo-color': '#FFFFFF',
+          'text-halo-width': 0.6
+        }
       });
 
-      // Popup
-      map.on('click', 'puntos', (e) => {
-        const nombreRegion = e.features[0].properties.región || e.features[0].properties.region;
-        const datos = datosExtra[nombreRegion] || {Manuales:0, Maleta:0, MobileLab:0, Total:0};
+      map.on('click', 'puntos-regiones', (e) => {
+        const p = e.features[0].properties;
+        const region    = p['region'] || 'Región no disponible';
+        const manuales  = Number(p['Manuales']  ?? 0);
+        const maleta    = Number(p['Maleta']    ?? 0);
+        const mobilelab = Number(p['MobileLab'] ?? 0);
         const fmt = (n) => new Intl.NumberFormat('es-CL').format(n);
 
         const html = `
           <div class="popup">
-            <div class="popup-title">${nombreRegion}</div>
+            <div class="popup-title">${region}</div>
             <div class="popup-stats">
               <div class="stat-item bg-1">
-                <div class="stat-value">${fmt(datos.Manuales)}</div>
+                <div class="stat-value">${fmt(manuales)}</div>
                 <div class="stat-line-1">usuarios de</div>
                 <div class="stat-line-2">Manuales</div>
               </div>
               <div class="stat-item bg-2">
-                <div class="stat-value">${fmt(datos.Maleta)}</div>
+                <div class="stat-value">${fmt(maleta)}</div>
                 <div class="stat-line-1">usuarios de</div>
                 <div class="stat-line-2">Maleta</div>
               </div>
               <div class="stat-item bg-3">
-                <div class="stat-value">${fmt(datos.MobileLab)}</div>
+                <div class="stat-value">${fmt(mobilelab)}</div>
                 <div class="stat-line-1">usuarios de</div>
                 <div class="stat-line-2">Mobile Lab</div>
               </div>
@@ -151,8 +162,8 @@
           .addTo(map);
       });
 
-      map.on('mouseenter', 'puntos', () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', 'puntos', () => map.getCanvas().style.cursor = '');
+      map.on('mouseenter', 'puntos-regiones', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'puntos-regiones', () => map.getCanvas().style.cursor = '');
     });
   </script>
 </body>
