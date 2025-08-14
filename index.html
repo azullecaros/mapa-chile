@@ -1,123 +1,325 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<title>Mapa Chile - Universo Expansivo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
-<link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-    body { margin: 0; padding: 0; background-color: #F1F1F1; font-family: 'Poppins', sans-serif; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    .popup-container {
-        background: white;
-        border-radius: 20px;
-        padding: 25px;
-        text-align: center;
-        box-shadow: 0 4px 25px rgba(0,0,0,0.15);
-        width: 340px;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Mapa Chile · 16 regiones · Mapbox GL JS v3</title>
+
+  <!-- Mapbox GL JS (v3.x) CSS & JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+
+  <!-- Turf.js (cálculo de centroides) -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <!-- Geocoder plugin (opcional) -->
+  <link
+    rel="stylesheet"
+    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.css"
+    type="text/css"
+  />
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.min.js"></script>
+
+  <style>
+    :root {
+      --panel-bg: rgba(255, 255, 255, .92);
+      --panel-border: #e5e7eb;
+      --shadow: 0 8px 24px rgba(0,0,0,.08);
+      --text: #111827;
     }
-    .popup-container h3 {
-        margin: 0 0 20px;
-        font-size: 22px;
-        color: #2e1a47;
-        font-weight: 800;
+    html, body { height: 100%; margin: 0; }
+    #map { position: absolute; inset: 0; }
+
+    .panel {
+      position: absolute; top: 12px; left: 12px; z-index: 3;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 12px; padding: 10px; box-shadow: var(--shadow);
+      display: flex; gap: 8px; align-items: center;
     }
-    .stats {
-        display: flex;
-        justify-content: space-between;
+    .panel button {
+      appearance: none; border: 1px solid var(--panel-border); border-radius: 10px;
+      padding: 8px 12px; font: 600 13px/1 system-ui, -apple-system, Segoe UI, Roboto;
+      background: white; cursor: pointer; transition: box-shadow .2s, transform .02s;
     }
-    .stat {
-        flex: 1;
-        margin: 0 5px;
-        padding: 18px;
-        border-radius: 15px;
-        color: #2e1a47;
-        font-weight: 600;
+    .panel button:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+    .panel button:active { transform: translateY(1px); }
+
+    .legend {
+      position: absolute; bottom: 14px; left: 12px; z-index: 3;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+      font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto; color: var(--text);
     }
-    .manuales { background-color: #E2D2F6; }
-    .maleta { background-color: #B0C4DE; }
-    .mobilelab { background-color: #A0D6D6; }
-    .stat strong {
-        display: block;
-        font-size: 24px;
-        margin-bottom: 5px;
-        font-weight: 800;
+    .legend h4 { margin: 0 0 6px; font-size: 12px; }
+    .legend .scale { display: grid; grid-template-columns: repeat(6, 18px); gap: 4px; margin-bottom: 6px; }
+    .legend .box { width: 18px; height: 12px; border-radius: 3px; border: 1px solid #cbd5e1; }
+    .legend .labels { display: flex; justify-content: space-between; font-size: 11px; }
+
+    .credits {
+      position: absolute; right: 12px; bottom: 12px; z-index: 2; font: 12px/1.4 system-ui;
+      background: var(--panel-bg); padding: 6px 10px; border: 1px solid var(--panel-border);
+      border-radius: 10px; box-shadow: var(--shadow);
     }
-</style>
+  </style>
 </head>
 <body>
+  <div class="panel">
+    <button id="btnChile">Enfocar Chile</button>
+    <button id="btnReset">Vista global</button>
+  </div>
+  <div id="map" aria-label="Mapa de Chile con 16 regiones"></div>
+  <div class="legend" id="legend"></div>
+  <div class="credits">Arrastra para mover, usa la rueda para zoom. Geolocalización requiere HTTPS.</div>
 
-<div id="map"></div>
+  <script>
+    // ====== 1) TOKEN de tu cuenta (público, provisto por ti) ======
+    mapboxgl.accessToken = "pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg";
 
-<script>
-mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYXNhcDYyMDM2YzJxcG80bGVva3M5aCJ9.q8lztAXI9Q1wYLR9QhzWZg';
+    // ====== 2) Configuración base del mapa ======
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/standard',
+      center: [-70.6693, -33.4489], // Santiago aprox
+      zoom: 4,
+      hash: true,
+      cooperativeGestures: true
+    });
 
-const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/light-v11',
-    center: [-71.5, -35.5],
-    zoom: 4
-});
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    map.addControl(new mapboxgl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
 
-// Control de zoom
-map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    // Buscador (opcional) restringido a Chile
+    try {
+      const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Buscar lugares en Chile…',
+        countries: 'cl',
+        language: 'es',
+        marker: false
+      });
+      map.addControl(geocoder, 'top-left');
+    } catch (e) { console.warn('Geocoder opcional no disponible:', e); }
 
-// Datos precargados
-const regionesData = [
-    { nombre: "Arica y Parinacota", coords: [-70.2979, -18.4746], manuales: 120, maleta: 95, mobilelab: 80 },
-    { nombre: "Tarapacá", coords: [-69.3322, -20.2133], manuales: 150, maleta: 130, mobilelab: 100 },
-    { nombre: "Antofagasta", coords: [-70.4000, -23.6500], manuales: 200, maleta: 180, mobilelab: 140 },
-    { nombre: "Atacama", coords: [-70.3300, -27.3700], manuales: 180, maleta: 130, mobilelab: 90 },
-    { nombre: "Coquimbo", coords: [-71.2500, -29.9533], manuales: 210, maleta: 190, mobilelab: 150 },
-    { nombre: "Valparaíso", coords: [-71.6127, -33.0458], manuales: 300, maleta: 250, mobilelab: 200 },
-    { nombre: "Metropolitana", coords: [-70.6483, -33.4569], manuales: 800, maleta: 700, mobilelab: 600 },
-    { nombre: "O'Higgins", coords: [-70.7491, -34.1708], manuales: 250, maleta: 230, mobilelab: 180 },
-    { nombre: "Maule", coords: [-71.6746, -35.4333], manuales: 240, maleta: 210, mobilelab: 170 },
-    { nombre: "Ñuble", coords: [-72.1167, -36.6167], manuales: 180, maleta: 160, mobilelab: 140 },
-    { nombre: "Biobío", coords: [-72.9833, -37.4667], manuales: 400, maleta: 350, mobilelab: 300 },
-    { nombre: "La Araucanía", coords: [-72.6667, -38.7333], manuales: 220, maleta: 200, mobilelab: 150 },
-    { nombre: "Los Ríos", coords: [-73.2500, -39.8000], manuales: 160, maleta: 140, mobilelab: 120 },
-    { nombre: "Los Lagos", coords: [-73.1333, -41.4667], manuales: 300, maleta: 280, mobilelab: 240 },
-    { nombre: "Aysén", coords: [-72.0667, -45.4000], manuales: 100, maleta: 90, mobilelab: 70 },
-    { nombre: "Magallanes", coords: [-70.9336, -53.1548], manuales: 80, maleta: 70, mobilelab: 50 }
-];
+    // ====== 3) Datos ficticios por región (reemplazables por tu .geojson) ======
+    // Clave = nombre EXACTO de la propiedad "región" en tu tileset/GeoJSON.
+    const DATA_REGIONES = {
+      'Arica y Parinacota':      { manuales: 120, maleta: 45,  mobilelab: 30 },
+      'Tarapacá':                 { manuales: 140, maleta: 60,  mobilelab: 35 },
+      'Antofagasta':              { manuales: 260, maleta: 110, mobilelab: 80 },
+      'Atacama':                  { manuales: 180, maleta: 70,  mobilelab: 40 },
+      'Coquimbo':                 { manuales: 320, maleta: 150, mobilelab: 90 },
+      'Valparaíso':               { manuales: 900, maleta: 410, mobilelab: 220 },
+      'Metropolitana de Santiago':{ manuales: 2200, maleta: 1100, mobilelab: 600 },
+      'O’Higgins':                { manuales: 430, maleta: 180, mobilelab: 120 },
+      'Maule':                    { manuales: 500, maleta: 220, mobilelab: 140 },
+      'Ñuble':                    { manuales: 240, maleta: 100, mobilelab: 70 },
+      'Biobío':                   { manuales: 760, maleta: 340, mobilelab: 200 },
+      'La Araucanía':             { manuales: 520, maleta: 240, mobilelab: 160 },
+      'Los Ríos':                 { manuales: 300, maleta: 140, mobilelab: 90 },
+      'Los Lagos':                { manuales: 480, maleta: 210, mobilelab: 150 },
+      'Aysén':                    { manuales: 80,  maleta: 35,  mobilelab: 25 },
+      'Magallanes y de la Antártica Chilena': { manuales: 70, maleta: 30, mobilelab: 20 }
+    };
 
-// Eliminar popups por defecto
-map.on('load', () => {
-    regionesData.forEach(region => {
-        const popupHTML = `
-            <div class="popup-container">
-                <h3>${region.nombre}</h3>
-                <div class="stats">
-                    <div class="stat manuales">
-                        <strong>${region.manuales}</strong>
-                        usuarios de <b>Manuales</b>
-                    </div>
-                    <div class="stat maleta">
-                        <strong>${region.maleta}</strong>
-                        usuarios de <b>Maleta</b>
-                    </div>
-                    <div class="stat mobilelab">
-                        <strong>${region.mobilelab}</strong>
-                        usuarios de <b>MobileLab</b>
-                    </div>
-                </div>
-            </div>
-        `;
+    // Utilidad: formatear numeros en español
+    const fmt = new Intl.NumberFormat('es-CL');
 
-        const popup = new mapboxgl.Popup({ offset: 25, closeOnClick: true }).setHTML(popupHTML);
+    // ====== 4) Fuente vectorial de tus regiones (tileset Mapbox) ======
+    const VECTOR_SOURCE_ID = 'regiones-tiles';
+    const VECTOR_URL = 'mapbox://vhirschberg.cst71ag7'; // <- ID tileset
+    const SOURCE_LAYER = 'regiones_chile_simple-4ltyfv';
 
-        new mapboxgl.Marker({
-            color: '#E2D2F6'
-        })
-        .setLngLat(region.coords)
-        .setPopup(popup)
+    // Construye una expresión "match" nombre->total para colorear
+    function buildTotalExpr() {
+      const pairs = [];
+      for (const [region, vals] of Object.entries(DATA_REGIONES)) {
+        const total = (vals.manuales||0) + (vals.maleta||0) + (vals.mobilelab||0);
+        pairs.push(region, total);
+      }
+      return ['match', ['get', 'región'], ...pairs, 0];
+    }
+
+    // Paleta y cortes (por total de casos)
+    const BREAKS = [200, 500, 1000, 2000, 3000];
+    const COLORS = ['#eff3ff','#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c'];
+
+    function buildFillColorExpr() {
+      const totalExpr = buildTotalExpr();
+      // step(base, color0, break1, color1, break2, color2, ...)
+      return ['step', totalExpr,
+        COLORS[0],
+        BREAKS[0], COLORS[1],
+        BREAKS[1], COLORS[2],
+        BREAKS[2], COLORS[3],
+        BREAKS[3], COLORS[4],
+        BREAKS[4], COLORS[5]
+      ];
+    }
+
+    // ====== 5) Inicialización de capas ======
+    map.on('load', () => {
+      // Fuente vectorial
+      if (!map.getSource(VECTOR_SOURCE_ID)) {
+        map.addSource(VECTOR_SOURCE_ID, { type: 'vector', url: VECTOR_URL });
+      }
+
+      // Capa de relleno (coropleta por total)
+      map.addLayer({
+        id: 'regiones-fill',
+        type: 'fill',
+        source: VECTOR_SOURCE_ID,
+        'source-layer': SOURCE_LAYER,
+        paint: {
+          'fill-color': buildFillColorExpr(),
+          'fill-opacity': 0.78
+        }
+      });
+
+      // Capa de borde
+      map.addLayer({
+        id: 'regiones-outline',
+        type: 'line',
+        source: VECTOR_SOURCE_ID,
+        'source-layer': SOURCE_LAYER,
+        paint: {
+          'line-color': '#0f172a',
+          'line-width': 0.6,
+          'line-opacity': 0.6
+        }
+      });
+
+      // Capa de borde resaltado (hover)
+      map.addLayer({
+        id: 'regiones-outline-hover',
+        type: 'line',
+        source: VECTOR_SOURCE_ID,
+        'source-layer': SOURCE_LAYER,
+        paint: {
+          'line-color': '#111827',
+          'line-width': 2.0
+        },
+        filter: ['==', ['get','región'], ''] // se actualiza en runtime
+      });
+
+      // Enfocar Chile al cargar
+      fitToChile();
+      renderLegend();
+    });
+
+    // ====== 6) Interacción ======
+    // Hover: resalta borde
+    map.on('mousemove', 'regiones-fill', (e) => {
+      const f = e.features && e.features[0];
+      if (!f) return;
+      const nombre = f.properties['región'];
+      map.setFilter('regiones-outline-hover', ['==', ['get','región'], nombre]);
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'regiones-fill', () => {
+      map.setFilter('regiones-outline-hover', ['==', ['get','región'], '']);
+      map.getCanvas().style.cursor = '';
+    });
+
+    // Click: popup con ficha de la región
+    map.on('click', 'regiones-fill', async (e) => {
+      const f = e.features && e.features[0];
+      if (!f) return;
+      const nombre = f.properties['región'];
+      const stats = DATA_REGIONES[nombre] || { manuales: 0, maleta: 0, mobilelab: 0 };
+      const total = stats.manuales + stats.maleta + stats.mobilelab;
+
+      // Centroide aproximado combinando geometrías visibles de la fuente
+      let centro = [e.lngLat.lng, e.lngLat.lat];
+      try {
+        const feats = map.querySourceFeatures(VECTOR_SOURCE_ID, {
+          sourceLayer: SOURCE_LAYER,
+          filter: ['==', ['get','región'], nombre]
+        });
+        if (feats && feats.length) {
+          const fc = { type: 'FeatureCollection', features: feats.map(ff => ({ type:'Feature', properties:{}, geometry: ff.geometry })) };
+          const c = turf.centerOfMass(fc).geometry.coordinates;
+          if (Array.isArray(c)) centro = c;
+        }
+      } catch (err) { /* fallback usa e.lngLat */ }
+
+      const html = `
+        <div style="font: 600 14px system-ui; margin-bottom: 6px;">${nombre}</div>
+        <div style="font: 12px system-ui; color:#111;">
+          <div><strong>Manuales:</strong> ${fmt.format(stats.manuales)}</div>
+          <div><strong>Maleta:</strong> ${fmt.format(stats.maleta)}</div>
+          <div><strong>Mobile Lab:</strong> ${fmt.format(stats.mobilelab)}</div>
+          <div style="margin-top:4px; border-top:1px solid #e5e7eb; padding-top:4px;"><strong>Total casos:</strong> ${fmt.format(total)}</div>
+          <div style="margin-top:4px; color:#334155;">Centro aproximado: ${centro[1].toFixed(4)}, ${centro[0].toFixed(4)}</div>
+        </div>
+      `;
+      new mapboxgl.Popup({ offset: 12 })
+        .setLngLat(centro)
+        .setHTML(html)
         .addTo(map);
     });
-});
-</script>
 
+    // ====== 7) Botones panel ======
+    document.getElementById('btnChile').addEventListener('click', fitToChile);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      map.flyTo({ center: [0, 20], zoom: 1.4, pitch: 0, bearing: 0 });
+    });
+
+    async function fitToChile() {
+      try {
+        const url = new URL('https://api.mapbox.com/geocoding/v5/mapbox.places/Chile.json');
+        url.searchParams.set('types', 'country');
+        url.searchParams.set('language', 'es');
+        url.searchParams.set('access_token', mapboxgl.accessToken);
+        const res = await fetch(url.toString());
+        const data = await res.json();
+        const feature = (data && data.features && data.features[0]) || null;
+        if (feature && Array.isArray(feature.bbox)) {
+          const [minLon, minLat, maxLon, maxLat] = feature.bbox;
+          map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 48, duration: 1200 });
+        } else if (feature && Array.isArray(feature.center)) {
+          map.flyTo({ center: feature.center, zoom: 3.6, duration: 1000 });
+        }
+      } catch (e) { console.warn('No se pudo enfocar Chile:', e); }
+    }
+
+    // ====== 8) Leyenda ======
+    function renderLegend() {
+      const el = document.getElementById('legend');
+      el.innerHTML = '';
+      const title = document.createElement('h4');
+      title.textContent = 'Total de casos (Manuales + Maleta + Mobile Lab)';
+      el.appendChild(title);
+
+      const scale = document.createElement('div');
+      scale.className = 'scale';
+      COLORS.forEach(c => {
+        const box = document.createElement('div');
+        box.className = 'box'; box.style.background = c; scale.appendChild(box);
+      });
+      el.appendChild(scale);
+
+      const labels = document.createElement('div');
+      labels.className = 'labels';
+      const ranges = ['0–'+BREAKS[0],
+                      (BREAKS[0]+1)+'–'+BREAKS[1],
+                      (BREAKS[1]+1)+'–'+BREAKS[2],
+                      (BREAKS[2]+1)+'–'+BREAKS[3],
+                      (BREAKS[3]+1)+'–'+BREAKS[4],
+                      (BREAKS[4]+1)+'+'];
+      labels.innerHTML = `<span>${ranges[0]}</span><span>${ranges[5]}</span>`;
+      // Etiquetas extremas; las intermedias se intuyen por la escala
+      el.appendChild(labels);
+    }
+
+    // ====== 9) Recalcular colores si cambian datos ======
+    // Si luego reemplazas DATA_REGIONES por tu GeoJSON, puedes llamar:
+    // map.setPaintProperty('regiones-fill', 'fill-color', buildFillColorExpr());
+
+    // ====== 10) Manejo de errores ======
+    map.on('error', (e) => { console.error('Mapbox GL JS Error:', e && e.error ? e.error : e); });
+  </script>
 </body>
 </html>
+
