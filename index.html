@@ -1,130 +1,124 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mapa Universo Expansivo</title>
-
-  <!-- Mapbox GL -->
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-
-  <style>
-    body { margin: 0; padding: 0; background: #F1F1F1; }
-    #map { width: 100%; height: 100vh; }
-    .mapboxgl-ctrl-top-right { position:absolute; top:16px; right:16px; z-index:10; }
-    .mapboxgl-ctrl-group { box-shadow:0 4px 12px rgba(0,0,0,.15); }
-    .mapboxgl-popup-content {
-      background:#FFFFFF; color:#201245;
-      border:1px solid #E2D2F6; border-radius:24px;
-      box-shadow:0 14px 40px rgba(32,18,69,.18);
-      padding:20px 22px;
-      font-family:"DIN","DIN Offc Pro",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      width: min(92vw, 640px);
-      box-sizing: border-box;
-    }
-    .popup-title {
-      font-weight:700;
-      font-size: clamp(22px, 3.2vw, 28px);
-      line-height: 1.15;
-      margin: 6px 8px 16px;
-    }
-    .popup-stats {
-      display:grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 12px;
-      padding:4px 6px 6px;
-    }
-    .stat-item {
-      border-radius:22px;
-      padding:14px 10px;
-      text-align:center;
-      min-height:132px;
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-    }
-    .bg-1 { background:#E2D2F6; }
-    .bg-2 { background:#89ACDB; }
-    .bg-3 { background:#A3D7DE; }
-    .stat-value {
-      font-weight:800;
-      font-size: clamp(22px, 3.2vw, 28px);
-      line-height: 1.05;
-      color:#201245;
-      margin-bottom:8px;
-    }
-    .stat-line-1 { font-size:14px; margin-bottom:2px; }
-    .stat-line-2 { font-size:15px; font-weight:600; }
-  </style>
+<meta charset="utf-8" />
+<title>Mapa de Chile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<style>
+  body { margin: 0; padding: 0; background-color: #F1F1F1; }
+  #map { width: 100%; height: 100vh; }
+  .marker {
+    width: 20px;
+    height: 20px;
+    background-color: #E2D2F6;
+    border: 2px solid #C3C3C3;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .popup {
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  .popup h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2E145B;
+  }
+  .popup .card-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .popup .card {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    color: #2E145B;
+  }
+  .popup .card p {
+    margin: 5px 0 0;
+    font-size: 12px;
+  }
+  .popup .card h4 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  .manuales { background-color: #E2D2F6; }
+  .maleta { background-color: #B0C4DE; }
+  .mobilelab { background-color: #AEE1E1; }
+</style>
 </head>
 <body>
-  <div id="map"></div>
+<div id="map"></div>
+<script>
+mapboxgl.accessToken = 'TU_TOKEN_MAPBOX';
 
-  <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lMzA2cGRsMDF5dTJrcHVmMG9jNGhmNiJ9.CTHV_NvsqvAnyZ3ZRijiZQ';
+// Inicializar mapa
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v11',
+  center: [-71.0, -33.5],
+  zoom: 4,
+  attributionControl: false
+});
 
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-71.5429, -35.6751],
-      zoom: 4
-    });
+// Lista de regiones con coordenadas y datos
+const regiones = [
+  { nombre: "Arica y Parinacota", coords: [-70.304, -18.478], manuales: 300, maleta: 250, mobilelab: 200 },
+  { nombre: "Tarapacá", coords: [-69.677, -20.213], manuales: 280, maleta: 230, mobilelab: 190 },
+  { nombre: "Antofagasta", coords: [-69.322, -23.650], manuales: 350, maleta: 300, mobilelab: 250 },
+  { nombre: "Atacama", coords: [-70.331, -27.366], manuales: 320, maleta: 280, mobilelab: 230 },
+  { nombre: "Coquimbo", coords: [-71.251, -29.953], manuales: 400, maleta: 350, mobilelab: 300 },
+  { nombre: "Valparaíso", coords: [-71.612, -33.047], manuales: 420, maleta: 380, mobilelab: 320 },
+  { nombre: "Metropolitana", coords: [-70.648, -33.456], manuales: 800, maleta: 700, mobilelab: 600 },
+  { nombre: "O'Higgins", coords: [-70.741, -34.170], manuales: 410, maleta: 360, mobilelab: 310 },
+  { nombre: "Maule", coords: [-71.649, -35.426], manuales: 380, maleta: 340, mobilelab: 290 },
+  { nombre: "Ñuble", coords: [-72.103, -36.609], manuales: 300, maleta: 260, mobilelab: 220 },
+  { nombre: "Biobío", coords: [-73.050, -37.469], manuales: 390, maleta: 350, mobilelab: 310 },
+  { nombre: "La Araucanía", coords: [-72.590, -38.739], manuales: 350, maleta: 310, mobilelab: 270 },
+  { nombre: "Los Ríos", coords: [-72.957, -39.817], manuales: 330, maleta: 290, mobilelab: 250 },
+  { nombre: "Los Lagos", coords: [-73.168, -41.471], manuales: 370, maleta: 330, mobilelab: 290 },
+  { nombre: "Aysén", coords: [-72.559, -45.402], manuales: 280, maleta: 240, mobilelab: 200 },
+  { nombre: "Magallanes", coords: [-70.923, -53.162], manuales: 260, maleta: 220, mobilelab: 180 }
+];
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right');
+// Agregar marcadores
+regiones.forEach(region => {
+  const el = document.createElement('div');
+  el.className = 'marker';
 
-    // Datos de las 16 regiones con coordenadas y valores
-    const regiones = [
-      { nombre: "Arica y Parinacota", coords: [-69.978, -18.478], manuales: 120, maleta: 80, mobilelab: 45 },
-      { nombre: "Tarapacá", coords: [-70.135, -20.213], manuales: 95, maleta: 50, mobilelab: 40 },
-      { nombre: "Antofagasta", coords: [-68.97, -23.65], manuales: 200, maleta: 150, mobilelab: 100 },
-      { nombre: "Atacama", coords: [-70.36, -27.37], manuales: 140, maleta: 100, mobilelab: 80 },
-      { nombre: "Coquimbo", coords: [-71.25, -29.95], manuales: 300, maleta: 250, mobilelab: 200 },
-      { nombre: "Valparaíso", coords: [-71.61, -33.05], manuales: 500, maleta: 400, mobilelab: 350 },
-      { nombre: "Metropolitana", coords: [-70.67, -33.45], manuales: 800, maleta: 700, mobilelab: 600 },
-      { nombre: "O'Higgins", coords: [-70.74, -34.17], manuales: 350, maleta: 300, mobilelab: 250 },
-      { nombre: "Maule", coords: [-71.25, -35.43], manuales: 400, maleta: 350, mobilelab: 300 },
-      { nombre: "Ñuble", coords: [-71.57, -36.82], manuales: 220, maleta: 200, mobilelab: 150 },
-      { nombre: "Biobío", coords: [-72.03, -37.47], manuales: 500, maleta: 450, mobilelab: 400 },
-      { nombre: "La Araucanía", coords: [-72.59, -38.74], manuales: 320, maleta: 280, mobilelab: 240 },
-      { nombre: "Los Ríos", coords: [-73.24, -39.81], manuales: 210, maleta: 190, mobilelab: 170 },
-      { nombre: "Los Lagos", coords: [-73.1, -41.47], manuales: 330, maleta: 300, mobilelab: 250 },
-      { nombre: "Aysén", coords: [-72.59, -45.4], manuales: 150, maleta: 130, mobilelab: 110 },
-      { nombre: "Magallanes", coords: [-70.91, -53.16], manuales: 180, maleta: 160, mobilelab: 140 }
-    ];
+  const popupContent = `
+    <div class="popup">
+      <h3>${region.nombre}</h3>
+      <div class="card-container">
+        <div class="card manuales">
+          <h4>${region.manuales}</h4>
+          <p>usuarios de<br><strong>Manuales</strong></p>
+        </div>
+        <div class="card maleta">
+          <h4>${region.maleta}</h4>
+          <p>usuarios de<br><strong>Maleta</strong></p>
+        </div>
+        <div class="card mobilelab">
+          <h4>${region.mobilelab}</h4>
+          <p>usuarios de<br><strong>Mobile Lab</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
 
-    // Pintar círculos
-    regiones.forEach(r => {
-      // Círculo
-      new mapboxgl.Marker({
-        color: '#E2D2F6'
-      })
-      .setLngLat(r.coords)
-      .setPopup(new mapboxgl.Popup({ maxWidth: '640px' })
-        .setHTML(`
-          <div class="popup">
-            <div class="popup-title">${r.nombre}</div>
-            <div class="popup-stats">
-              <div class="stat-item bg-1">
-                <div class="stat-value">${r.manuales}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Manuales</div>
-              </div>
-              <div class="stat-item bg-2">
-                <div class="stat-value">${r.maleta}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Maleta</div>
-              </div>
-              <div class="stat-item bg-3">
-                <div class="stat-value">${r.mobilelab}</div>
-                <div class="stat-line-1">usuarios de</div>
-                <div class="stat-line-2">Mobile Lab</div>
-              </div>
-            </div>
-          </div>
-        `)
-      )
-      .addTo(map);
-    });
-  </script>
+  const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
+
+  new mapboxgl.Marker(el)
+    .setLngLat(region.coords)
+    .setPopup(popup)
+    .addTo(map);
+});
+</script>
 </body>
 </html>
 
