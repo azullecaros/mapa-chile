@@ -2,13 +2,47 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>Mapa Regiones Chile</title>
+<title>Mapa Regiones Chile — Universo Expansivo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
 <style>
-  body { margin:0; padding:0; background:#F1F1F1; }
-  #map { position:absolute; top:0; bottom:0; width:100%; }
-  .mapboxgl-popup-content { background: white; border-radius: 12px; padding: 16px; }
+  /* Fondo general */
+  html, body { height:100%; margin:0; }
+  body { background:#F1F1F1; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+  #map { position:absolute; inset:0; }
+
+  /* Popup más amplio y sin cortes */
+  .mapboxgl-popup {
+    max-width: none !important;      /* sin límite */
+    z-index: 5;
+  }
+  .mapboxgl-popup-content {
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.15);
+    overflow: visible;               /* evita corte interno */
+  }
+  .ux-popup {
+    min-width: 640px;                /* ancho cómodo */
+    max-width: 820px;
+  }
+  .ux-popup h2 {
+    margin: 0 0 14px;
+    font: 800 28px/1.15 system-ui;
+    color: #201245;
+    letter-spacing: .2px;
+  }
+  .ux-cards { display: flex; gap: 14px; }
+  .ux-card {
+    flex:1; border-radius: 18px; text-align:center; padding: 18px 10px;
+    color: #201245;
+  }
+  .ux-card h3 { margin: 0 0 6px; font: 800 26px/1 system-ui; }
+  .ux-card p  { margin: 0; font: 14px/1.35 system-ui; color: #2b2b2b; }
+
+  .bg-manuales { background:#E9E0F8; }
+  .bg-maleta   { background:#C9D9F1; }
+  .bg-mobile   { background:#BFE8E8; }
 </style>
 </head>
 <body>
@@ -17,21 +51,27 @@
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
 <script>
+/* === TOKEN DE TU CUENTA === */
 mapboxgl.accessToken = "pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg";
 
+/* === MAPA BASE ===
+   Usamos light-v11 y luego forzamos colores para que
+   fondo sea #F1F1F1 y tierra #C3C3C3
+*/
 const map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/mapbox/light-v11',
   center: [-70.67, -33.45],
-  zoom: 4
+  zoom: 4,
+  hash: true
 });
 
-// Ajustar colores base
+/* Ajuste de colores base (puede variar según el estilo; probamos ids comunes) */
 map.on('styledata', () => {
   if (map.getLayer('background')) {
     map.setPaintProperty('background', 'background-color', '#F1F1F1');
   }
-  ['land', 'landcover', 'landuse'].forEach(id => {
+  ['land', 'landcover', 'landuse', 'national-park', 'park'].forEach(id => {
     if (map.getLayer(id)) {
       try { map.setPaintProperty(id, 'fill-color', '#C3C3C3'); } catch(e){}
     }
@@ -41,81 +81,103 @@ map.on('styledata', () => {
   }
 });
 
-map.on('load', () => {
-  // Fuente del tileset
-  map.addSource('regiones-centros', {
-    type: 'vector',
-    url: 'mapbox://vhirschberg.69tq4hif'
-  });
+/* === CONSTANTES DE TU TILESET DE PUNTOS === */
+const TILESET_URL   = 'mapbox://vhirschberg.69tq4hif';
+const SOURCE_LAYER  = 'regiones_chile_centros-3ktyh3';
 
-  // Círculos
+/* Expresión reutilizable: total = manuales + maleta + laboratorio móvil */
+const TOTAL_EXPR = ['+',
+  ['get','manuales'],
+  ['+',['get','maleta'], ['get','laboratorio móvil']]
+];
+
+map.on('load', () => {
+  // 1) Fuente vectorial (tu tileset)
+  map.addSource('regiones-centros', { type:'vector', url: TILESET_URL });
+
+  // 2) Círculos lila, radio proporcional al total
+  //    Escala: 0 -> 10 px, 3000 -> 46 px (clamp evita radios extremos)
   map.addLayer({
     id: 'centros-circulos',
     type: 'circle',
     source: 'regiones-centros',
-    'source-layer': 'regiones_chile_centros-3ktyh3',
+    'source-layer': SOURCE_LAYER,
     paint: {
-      'circle-radius': 20,
-      'circle-color': '#E2D2F6',
+      'circle-color': '#E2D2F6',          // ⬅ tu color
+      'circle-stroke-color': '#FFFFFF',
       'circle-stroke-width': 2,
-      'circle-stroke-color': '#fff'
+      'circle-radius': [
+        'interpolate', ['linear'], ['clamp', TOTAL_EXPR, 0, 3000],
+        0,   10,
+        300, 14,
+        600, 18,
+        1200,24,
+        2000,32,
+        3000,46
+      ]
     }
   });
 
-  // Texto con total
+  // 3) Número total centrado dentro del círculo
   map.addLayer({
     id: 'centros-texto',
     type: 'symbol',
     source: 'regiones-centros',
-    'source-layer': 'regiones_chile_centros-3ktyh3',
+    'source-layer': SOURCE_LAYER,
     layout: {
-      'text-field': [
-        'to-string',
-        ['+', ['get','manuales'], ['+', ['get','maleta'], ['get','laboratorio móvil']]]
-      ],
+      'text-field': ['to-string', TOTAL_EXPR],
       'text-size': 14,
-      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      'text-allow-overlap': true,    // que no desaparezca por colisión
+      'symbol-placement': 'point'
     },
-    paint: { 'text-color': '#201245' }
+    paint: {
+      'text-color': '#201245',       // ⬅ tu color
+      'text-halo-color': '#FFFFFF',
+      'text-halo-width': 0.6
+    }
   });
 
-  // Popup al hacer click
+  // 4) Popup con tu diseño
   map.on('click', 'centros-circulos', (e) => {
-    const f = e.features[0].properties;
-    const nombre = f['región'];
-    const man = f.manuales || 0;
-    const mal = f.maleta || 0;
-    const mob = f['laboratorio móvil'] || 0;
+    const p = e.features[0].properties;
+    const nombre = p['región'];
+    const man = Number(p['manuales'] || 0);
+    const mal = Number(p['maleta'] || 0);
+    const mob = Number(p['laboratorio móvil'] || 0);
 
     const html = `
-      <div style="font:700 18px system-ui; color:#201245; margin-bottom:12px;">${nombre}</div>
-      <div style="display:flex; gap:12px; font: 14px system-ui;">
-        <div style="flex:1; background:#E9E0F8; padding:12px; border-radius:12px; text-align:center;">
-          <div style="font:700 20px system-ui; color:#201245;">${man}</div>
-          <div>usuarios de <strong>Manuales</strong></div>
+      <div class="ux-popup">
+        <h2>${nombre}</h2>
+        <div class="ux-cards">
+          <div class="ux-card bg-manuales">
+            <h3>${man}</h3>
+            <p>usuarios de <strong>Manuales</strong></p>
+          </div>
+          <div class="ux-card bg-maleta">
+            <h3>${mal}</h3>
+            <p>usuarios de <strong>Maleta</strong></p>
+          </div>
+          <div class="ux-card bg-mobile">
+            <h3>${mob}</h3>
+            <p>usuarios de <strong>MobileLab</strong></p>
+          </div>
         </div>
-        <div style="flex:1; background:#C9D9F1; padding:12px; border-radius:12px; text-align:center;">
-          <div style="font:700 20px system-ui; color:#201245;">${mal}</div>
-          <div>usuarios de <strong>Maleta</strong></div>
-        </div>
-        <div style="flex:1; background:#BFE8E8; padding:12px; border-radius:12px; text-align:center;">
-          <div style="font:700 20px system-ui; color:#201245;">${mob}</div>
-          <div>usuarios de <strong>MobileLab</strong></div>
-        </div>
-      </div>
-    `;
-    new mapboxgl.Popup({ offset: 14 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+      </div>`;
+
+    new mapboxgl.Popup({ offset: 16, closeButton: true, maxWidth: "820px" })
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
   });
 
-  map.on('mouseenter', 'centros-circulos', () => {
-    map.getCanvas().style.cursor = 'pointer';
-  });
-  map.on('mouseleave', 'centros-circulos', () => {
-    map.getCanvas().style.cursor = '';
-  });
+  // Cursor “mano” al pasar por los puntos
+  map.on('mouseenter', 'centros-circulos', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'centros-circulos', () => map.getCanvas().style.cursor = '');
 });
 </script>
 </body>
 </html>
+
 
 
