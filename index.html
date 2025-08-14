@@ -12,25 +12,22 @@
   <style>
     body { margin: 0; padding: 0; background: #F1F1F1; }
     #map { width: 100%; height: 100vh; }
+    .mapboxgl-ctrl-top-right{ position:absolute; top:16px; right:16px; z-index:10; }
+    .mapboxgl-ctrl-group{ box-shadow:0 4px 12px rgba(0,0,0,.15); }
 
-    /* Controles */
-    .mapboxgl-ctrl-top-right { position: absolute; top: 16px; right: 16px; z-index: 10; }
-    .mapboxgl-ctrl-group { box-shadow: 0 4px 12px rgba(0,0,0,.15); }
-
-    /* Popup */
-    .mapboxgl-popup-content {
-      background: #FFFFFF; color: #201245;
-      border: 1px solid #E2D2F6; border-radius: 24px;
-      box-shadow: 0 14px 40px rgba(32,18,69,.18);
-      padding: 20px 22px;
-      font-family: "DIN","DIN Offc Pro",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    .mapboxgl-popup-content{
+      background:#FFFFFF; color:#201245;
+      border:1px solid #E2D2F6; border-radius:24px;
+      box-shadow:0 14px 40px rgba(32,18,69,.18);
+      padding:20px 22px;
+      font-family:"DIN","DIN Offc Pro",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
       width: min(92vw, 640px);
       box-sizing: border-box;
     }
-    .mapboxgl-popup-close-button { color: #201245; font-size: 20px; }
+    .mapboxgl-popup-close-button{ color:#201245; font-size:20px; }
 
-    .popup-title {
-      font-weight: 700;
+    .popup-title{
+      font-weight:700;
       font-size: clamp(22px, 3.2vw, 28px);
       line-height: 1.15;
       margin: 6px 8px 16px;
@@ -39,39 +36,40 @@
       hyphens: auto;
     }
 
-    .popup-stats {
-      display: grid;
+    .popup-stats{
+      display:grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 12px;
-      padding: 4px 6px 6px;
+      padding:4px 6px 6px;
     }
-    .stat-item {
-      border-radius: 22px;
-      padding: 14px 10px;
-      text-align: center;
-      min-height: 132px;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    .stat-item{
+      border-radius:22px;
+      padding:14px 10px;
+      text-align:center;
+      min-height:132px;
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
     }
-    .bg-1 { background: #E2D2F6; }
-    .bg-2 { background: #89ACDB; }
-    .bg-3 { background: #A3D7DE; }
+    .bg-1{ background:#E2D2F6; }
+    .bg-2{ background:#89ACDB; }
+    .bg-3{ background:#A3D7DE; }
 
-    .stat-value {
-      font-weight: 800;
+    .stat-value{
+      font-weight:800;
       font-size: clamp(22px, 3.2vw, 28px);
       line-height: 1.05;
-      color: #201245;
-      margin-bottom: 8px;
+      color:#201245;
+      margin-bottom:8px;
     }
-    .stat-line-1 { font-size: 14px; margin-bottom: 2px; }
-    .stat-line-2 { font-size: 15px; font-weight: 600; }
+    .stat-line-1{ font-size:14px; margin-bottom:2px; }
+    .stat-line-2{ font-size:15px; font-weight:600; }
+
+    .mapboxgl-canvas-container { font-family:"DIN","DIN Offc Pro",sans-serif; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <script>
-    // Token Mapbox
     mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lMzA2cGRsMDF5dTJrcHVmMG9jNGhmNiJ9.CTHV_NvsqvAnyZ3ZRijiZQ';
 
     const map = new mapboxgl.Map({
@@ -84,7 +82,8 @@
     });
 
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
-    map.addControl(new mapboxgl.NavigationControl({ showCompass:false, visualizePitch:false }), 'top-right');
+    const nav = new mapboxgl.NavigationControl({ showCompass:false, visualizePitch:false });
+    map.addControl(nav, 'top-right');
 
     map.on('load', () => {
       map.setPaintProperty('background', 'background-color', '#C3C3C3');
@@ -135,8 +134,8 @@
       map.on('click', 'puntos-regiones', (e) => {
         const p = e.features[0].properties;
         const region    = p['región'] || p['region'] || 'Región no disponible';
-        const manuales  = Number(p['manuales'] ?? 0);
-        const maleta    = Number(p['maleta'] ?? 0);
+        const manuales  = Number(p['manuales']  ?? 0);
+        const maleta    = Number(p['maleta']    ?? 0);
         const mobilelab = Number(p['mobilelab'] ?? p['laboratorio móvil'] ?? 0);
         const fmt = (n) => new Intl.NumberFormat('es-CL').format(n);
 
@@ -175,4 +174,3 @@
   </script>
 </body>
 </html>
-
