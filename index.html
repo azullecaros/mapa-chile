@@ -3,95 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Regiones Chile</title>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <title>Mapa de Regiones Chile</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-        .mapboxgl-popup {
-            max-width: 300px;
-            font-family: 'Open Sans', sans-serif;
-        }
-
-        .mapboxgl-popup-content {
-            white-space: normal;
-            word-wrap: break-word;
-            padding: 15px;
-            box-sizing: border-box;
-            border-radius: 12px;
-        }
-
-        .popup-card {
-            display: inline-block;
-            padding: 10px;
-            border-radius: 12px;
+        /* Etiquetas sobre los círculos */
+        .circle-label {
             color: #201245;
             font-weight: bold;
-            margin-right: 8px;
             text-align: center;
-            min-width: 90px;
+            font-size: 12px;
         }
 
-        .manuales { background-color: #E2D2F6; }
-        .maleta { background-color: #A5C4E3; }
-        .mobilelab { background-color: #A9DADC; }
+        /* Estilo del popup */
+        .mapboxgl-popup {
+            max-width: 300px;
+        }
+
+        .popup-content {
+            font-family: Arial, sans-serif;
+        }
+
+        .popup-header {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .popup-grid {
+            display: flex;
+            gap: 5px;
+        }
+
+        .popup-item {
+            flex: 1;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .popup-item strong {
+            display: block;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-
 <div id="map"></div>
 
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script>
-    mapboxgl.accessToken = 'TU_ACCESS_TOKEN_DE_MAPBOX';
+    mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg';
 
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/light-v11',
-        center: [-70.67, -33.45],
-        zoom: 4
+        center: [-71.7, -35.4],
+        zoom: 4.5
     });
 
     map.on('load', () => {
-        // Fuente GeoJSON local
-        map.addSource('centros', {
-            type: 'geojson',
-            data: 'datos.geojson' // tu archivo GeoJSON
+        map.addSource('regiones', {
+            type: 'vector',
+            url: 'mapbox://vhirschberg.69tq4hif'
         });
 
-        // Capa de círculos
         map.addLayer({
-            id: 'circulos',
+            id: 'regiones-circles',
             type: 'circle',
-            source: 'centros',
+            source: 'regiones',
+            'source-layer': 'regiones_chile_centros-3ktyh3',
             paint: {
+                'circle-radius': 10,
                 'circle-color': '#E2D2F6',
-                'circle-radius': [
-                    'interpolate', ['linear'], 
-                    ['+', ['get', 'manuales'], ['get', 'maleta'], ['get', 'mobilelab']],
-                    0, 10,
-                    500, 40
-                ],
                 'circle-stroke-width': 1,
                 'circle-stroke-color': '#fff'
             }
         });
 
-        // Capa de texto
         map.addLayer({
-            id: 'labels',
+            id: 'regiones-labels',
             type: 'symbol',
-            source: 'centros',
+            source: 'regiones',
+            'source-layer': 'regiones_chile_centros-3ktyh3',
             layout: {
-                'text-field': [
-                    'to-string', 
-                    ['+', ['get', 'manuales'], ['get', 'maleta'], ['get', 'mobilelab']]
-                ],
-                'text-size': 14,
-                'text-font': ['Open Sans Bold'],
-                'text-allow-overlap': true,
-                'text-ignore-placement': true
+                'text-field': ['get', 'manuales'],
+                'text-size': 12
             },
             paint: {
                 'text-color': '#201245'
@@ -99,36 +99,39 @@
         });
 
         // Popup al hacer click
-        map.on('click', 'circulos', (e) => {
+        map.on('click', 'regiones-circles', (e) => {
             const props = e.features[0].properties;
-            const region = props.region;
-            const manuales = props.manuales;
-            const maleta = props.maleta;
-            const mobilelab = props.mobilelab;
-
-            const popupContent = `
-                <h3 style="margin:0 0 10px 0; color:#201245;">${region}</h3>
-                <div class="popup-card manuales">${manuales}<br><small>usuarios de Manuales</small></div>
-                <div class="popup-card maleta">${maleta}<br><small>usuarios de Maleta</small></div>
-                <div class="popup-card mobilelab">${mobilelab}<br><small>usuarios de MobileLab</small></div>
+            const html = `
+                <div class="popup-content">
+                    <div class="popup-header">${props.región}</div>
+                    <div class="popup-grid">
+                        <div class="popup-item" style="background-color:#DCD6F7">
+                            <strong>${props.manuales}</strong> Manuales
+                        </div>
+                        <div class="popup-item" style="background-color:#B6E0E2">
+                            <strong>${props.maleta}</strong> Maleta
+                        </div>
+                        <div class="popup-item" style="background-color:#B8E1DD">
+                            <strong>${props["laboratorio móvil"]}</strong> MobileLab
+                        </div>
+                    </div>
+                </div>
             `;
-
             new mapboxgl.Popup()
                 .setLngLat(e.lngLat)
-                .setHTML(popupContent)
+                .setHTML(html)
                 .addTo(map);
         });
 
-        // Cursor tipo mano sobre círculos
-        map.on('mouseenter', 'circulos', () => {
+        // Cambiar cursor sobre círculos
+        map.on('mouseenter', 'regiones-circles', () => {
             map.getCanvas().style.cursor = 'pointer';
         });
-        map.on('mouseleave', 'circulos', () => {
+        map.on('mouseleave', 'regiones-circles', () => {
             map.getCanvas().style.cursor = '';
         });
     });
 </script>
-
 </body>
 </html>
 
