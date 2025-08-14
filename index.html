@@ -1,127 +1,168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa Chile - Universo Expansivo</title>
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
-  <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+<meta charset="utf-8">
+<title>Mapa Chile - Universo Expansivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css" rel="stylesheet" />
+<style>
+  body { margin:0; padding:0; font-family: 'DIN', sans-serif; }
+  #map { position:absolute; top:0; bottom:0; width:100%; }
 
-    .popup-container {
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      max-width: 250px;
-    }
+  /* Popup */
+  .custom-popup {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    font-family: 'DIN', sans-serif;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    min-width: 260px;
+    position: relative;
+  }
+  .popup-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #2a2350;
+  }
+  .popup-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: #2a2350;
+  }
+  .popup-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .popup-box {
+    flex: 1 1 calc(33% - 10px);
+    border-radius: 10px;
+    text-align: center;
+    padding: 15px 10px;
+    color: #2a2350;
+  }
+  .popup-number {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .popup-label {
+    font-size: 14px;
+    line-height: 1.2;
+  }
 
-    .popup-title {
-      font-weight: bold;
-      margin-bottom: 8px;
-      font-size: 16px;
-    }
-
-    .popup-stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .stat-box {
-      flex: 1;
-      min-width: 60px;
-      padding: 6px;
-      border-radius: 6px;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-    }
-
-    .manuales { background-color: #5E4B8B; }
-    .maleta { background-color: #4B8B8B; }
-    .mobilelab { background-color: #2C7A7B; }
-  </style>
+  /* Colores específicos */
+  .manuales { background: #E2D2F6; }
+  .maleta { background: #89ACDB; }
+  .mobilelab { background: #A3D7DE; }
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg';
 
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-70.65, -33.45],
-      zoom: 4
-    });
+<div id="map"></div>
 
-    map.on('load', () => {
-      map.addSource('regiones', {
-        type: 'vector',
-        url: 'mapbox://vhirschberg.69tq4hif'
-      });
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoidmhpcnNjaGJlcmciLCJhIjoiY21lYmh4NDB4MG85bDJrcHdib21veGNubiJ9.WyoHoI8fXYX3VkEb42vKXg';
 
-      // Círculos
-      map.addLayer({
-        id: 'regiones-circles',
-        type: 'circle',
-        source: 'regiones',
-        'source-layer': 'regiones_chile_centros-3ktyh3',
-        paint: {
-          'circle-radius': 15,
-          'circle-color': '#E2D2F6',
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#201245'
-        }
-      });
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v11',
+  center: [-70.67, -33.45],
+  zoom: 4.2
+});
 
-      // Números
-      map.addLayer({
-        id: 'regiones-labels',
-        type: 'symbol',
-        source: 'regiones',
-        'source-layer': 'regiones_chile_centros-3ktyh3',
-        layout: {
-          'text-field': ['get', 'total_usuarios'],
-          'text-size': 12,
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-offset': [0, 0]
-        },
-        paint: {
-          'text-color': '#201245'
-        }
-      });
+map.on('load', () => {
+  // Capa de puntos
+  map.addSource('regiones', {
+    type: 'vector',
+    url: 'mapbox://vhirschberg.69tq4hif' // tu tileset
+  });
 
-      // Popup
-      map.on('click', 'regiones-circles', (e) => {
-        const props = e.features[0].properties;
-        const popupHTML = `
-          <div class="popup-container">
-            <div class="popup-title">${props.region}</div>
-            <div class="popup-stats">
-              <div class="stat-box manuales">${props.manuales} <br> Manuales</div>
-              <div class="stat-box maleta">${props.maleta} <br> Maleta</div>
-              <div class="stat-box mobilelab">${props.mobilelab} <br> MobileLab</div>
-            </div>
+  map.addLayer({
+    id: 'circles',
+    type: 'circle',
+    source: 'regiones',
+    'source-layer': 'regiones_chile_centros-3ktyh3',
+    paint: {
+      'circle-radius': 12,
+      'circle-color': '#D3BCEB',
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#7A5CA8'
+    }
+  });
+
+  // Layer de números
+  map.addLayer({
+    id: 'labels',
+    type: 'symbol',
+    source: 'regiones',
+    'source-layer': 'regiones_chile_centros-3ktyh3',
+    layout: {
+      'text-field': [
+        'to-string',
+        ['+', ['get', 'Manuales'], ['+', ['get', 'Maleta'], ['get', 'MobileLab']]]
+      ],
+      'text-size': 12
+    },
+    paint: {
+      'text-color': '#2a2350',
+      'text-halo-color': '#ffffff',
+      'text-halo-width': 1
+    }
+  });
+
+  // Popup
+  map.on('click', 'circles', (e) => {
+    const props = e.features[0].properties;
+    const region = props['región'];
+    const manuales = props['Manuales'] || 0;
+    const maleta = props['Maleta'] || 0;
+    const mobilelab = props['MobileLab'] || 0;
+
+    const popupHTML = `
+      <div class="custom-popup">
+        <div class="popup-close" onclick="this.parentElement.parentElement.remove()">×</div>
+        <div class="popup-title">${region}</div>
+        <div class="popup-boxes">
+          <div class="popup-box manuales">
+            <div class="popup-number">${manuales}</div>
+            <div class="popup-label">usuarios de<br>Manuales</div>
           </div>
-        `;
-        new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(popupHTML)
-          .addTo(map);
-      });
+          <div class="popup-box maleta">
+            <div class="popup-number">${maleta}</div>
+            <div class="popup-label">usuarios de<br>Maleta</div>
+          </div>
+          <div class="popup-box mobilelab">
+            <div class="popup-number">${mobilelab}</div>
+            <div class="popup-label">usuarios de<br>MobileLab</div>
+          </div>
+        </div>
+      </div>
+    `;
 
-      map.on('mouseenter', 'regiones-circles', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
+    new mapboxgl.Popup({ closeButton: false })
+      .setLngLat(e.lngLat)
+      .setHTML(popupHTML)
+      .addTo(map);
+  });
 
-      map.on('mouseleave', 'regiones-circles', () => {
-        map.getCanvas().style.cursor = '';
-      });
-    });
-  </script>
+  map.on('mouseenter', 'circles', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'circles', () => {
+    map.getCanvas().style.cursor = '';
+  });
+});
+</script>
+
 </body>
 </html>
+
 
 
 
