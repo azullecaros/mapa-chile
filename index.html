@@ -12,6 +12,7 @@
   <style>
     body { margin: 0; padding: 0; background: #F1F1F1; }
     #map { width: 100%; height: 100vh; }
+
     .mapboxgl-ctrl-top-right{ position:absolute; top:16px; right:16px; z-index:10; }
     .mapboxgl-ctrl-group{ box-shadow:0 4px 12px rgba(0,0,0,.15); }
 
@@ -88,16 +89,20 @@
     map.on('load', () => {
       map.setPaintProperty('background', 'background-color', '#C3C3C3');
 
+      // 🔹 CAMBIAR ESTOS 2 DATOS SEGÚN TU NUEVO TILESET
+      const TILESET_URL = 'mapbox://TU_USUARIO.TU_TILESET_ID';
+      const SOURCE_LAYER = 'nombre_de_tu_source_layer';
+
       map.addSource('regiones-ue', {
         type: 'vector',
-        url: 'mapbox://vhirschberg.967ojrcx'
+        url: TILESET_URL
       });
 
       map.addLayer({
         id: 'puntos-regiones',
         type: 'circle',
         source: 'regiones-ue',
-        'source-layer': 'regiones_chile_multicasos-3de3pl',
+        'source-layer': SOURCE_LAYER,
         paint: {
           'circle-color': '#E2D2F6',
           'circle-radius': [
@@ -114,7 +119,7 @@
         id: 'etiquetas-casos',
         type: 'symbol',
         source: 'regiones-ue',
-        'source-layer': 'regiones_chile_multicasos-3de3pl',
+        'source-layer': SOURCE_LAYER,
         layout: {
           'text-field': ['to-string', ['coalesce', ['get','total'], 0]],
           'text-font': ['DIN Offc Pro Medium','DIN Pro Medium','DIN 1451 Mittelschrift','Arial Unicode MS Regular'],
